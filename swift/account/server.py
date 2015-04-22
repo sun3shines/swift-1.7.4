@@ -187,15 +187,7 @@ class AccountController(object):
         if broker.is_deleted():
             return HTTPNotFound(request=req)
         info = broker.get_info()
-        resp_headers = {
-            'X-Account-Container-Count': info['container_count'],
-            'X-Account-Object-Count': info['object_count'],
-            'X-Account-Bytes-Used': info['bytes_used'],
-            'X-Timestamp': info['created_at'],
-            'X-PUT-Timestamp': info['put_timestamp']}
-        resp_headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
-            if value != '')
+        
         try:
             prefix = get_param(req, 'prefix')
             delimiter = get_param(req, 'delimiter')
@@ -215,47 +207,27 @@ class AccountController(object):
         except UnicodeDecodeError, err:
             return HTTPBadRequest(body='parameters not utf8',
                                   content_type='text/plain', request=req)
+        
         if query_format:
             req.accept = FORMAT2CONTENT_TYPE.get(query_format.lower(),
                                                  FORMAT2CONTENT_TYPE['plain'])
-        try:
-            out_content_type = req.accept.best_match(
-                                    ['text/plain', 'application/json',
-                                     'application/xml', 'text/xml'],
-                                    default_match='text/plain')
-        except AssertionError, err:
-            return HTTPBadRequest(body='bad accept header: %s' % req.accept,
-                                  content_type='text/plain', request=req)
+            
+        req.accept = out_content_type = 'application/json'
+        
         account_list = broker.list_containers_iter(limit, marker, end_marker,
                                                    prefix, delimiter)
-        if out_content_type == 'application/json':
-            data = []
-            for (name, object_count, bytes_used, is_subdir) in account_list:
-                if is_subdir:
-                    data.append({'subdir': name})
-                else:
-                    data.append({'name': name, 'count': object_count,
-                                'bytes': bytes_used})
-            account_list = json.dumps(data)
-        elif out_content_type.endswith('/xml'):
-            output_list = ['<?xml version="1.0" encoding="UTF-8"?>',
-                           '<account name="%s">' % account]
-            for (name, object_count, bytes_used, is_subdir) in account_list:
-                name = saxutils.escape(name)
-                if is_subdir:
-                    output_list.append('<subdir name="%s" />' % name)
-                else:
-                    item = '<container><name>%s</name><count>%s</count>' \
-                           '<bytes>%s</bytes></container>' % \
-                           (name, object_count, bytes_used)
-                    output_list.append(item)
-            output_list.append('</account>')
-            account_list = '\n'.join(output_list)
-        else:
-            if not account_list:
-                return HTTPNoContent(request=req, headers=resp_headers)
-            account_list = '\n'.join(r[0] for r in account_list) + '\n'
-        ret = Response(body=account_list, request=req, headers=resp_headers)
+        
+        data = []
+        for (name, object_count, bytes_used, is_subdir) in account_list:
+            # all containers is dir,no file exists
+            data.append({'name': name, 'last_modified': str(int(time.time()))})
+            
+        account_list = json.dumps(data)
+        
+        if not account_list:
+            return HTTPNoContent(request=req)
+            
+        ret = Response(body=account_list, request=req)
         ret.content_type = out_content_type
         ret.charset = 'utf-8'
         return ret

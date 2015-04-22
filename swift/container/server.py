@@ -273,16 +273,7 @@ class ContainerController(object):
         if broker.is_deleted():
             return HTTPNotFound(request=req)
         info = broker.get_info()
-        resp_headers = {
-            'X-Container-Object-Count': info['object_count'],
-            'X-Container-Bytes-Used': info['bytes_used'],
-            'X-Timestamp': info['created_at'],
-            'X-PUT-Timestamp': info['put_timestamp'],
-        }
-        resp_headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
-            if value != '' and (key.lower() in self.save_headers or
-                                key.lower().startswith('x-container-meta-')))
+        
         try:
             path = get_param(req, 'path')
             prefix = get_param(req, 'prefix')
@@ -303,34 +294,22 @@ class ContainerController(object):
         except UnicodeDecodeError, err:
             return HTTPBadRequest(body='parameters not utf8',
                                   content_type='text/plain', request=req)
-        if query_format:
-            req.accept = FORMAT2CONTENT_TYPE.get(query_format.lower(),
-                                                 FORMAT2CONTENT_TYPE['plain'])
-        try:
-            out_content_type = req.accept.best_match(
-                                    ['text/plain', 'application/json',
-                                     'application/xml', 'text/xml'],
-                                    default_match='text/plain')
-        except AssertionError, err:
-            return HTTPBadRequest(body='bad accept header: %s' % req.accept,
-                                  content_type='text/plain', request=req)
+            
+        req.accept = out_content_type = 'application/json'
+        
         container_list = broker.list_objects_iter(limit, marker, end_marker,
                                                   prefix, delimiter, path)
         
-        out_content_type = 'application/json'
-        if out_content_type == 'application/json':
-            data = []
-            for (name, size, etag) in container_list:
-                
-                data.append({ 'bytes': size,'hash': etag,'name': name})
-                    
-            container_list = json.dumps(data)
+        data = []
+        for (name, size, etag) in container_list:    
+            data.append({ 'bytes': size,'hash': etag,'name': name})
+    
+        container_list = json.dumps(data)
         
-        else:
-            if not container_list:
-                return HTTPNoContent(request=req, headers=resp_headers)
-            container_list = '\n'.join(r[0] for r in container_list) + '\n'
-        ret = Response(body=container_list, request=req, headers=resp_headers)
+        if not container_list:
+            return HTTPNoContent(request=req)
+
+        ret = Response(body=container_list, request=req)
         ret.content_type = out_content_type
         ret.charset = 'utf-8'
         return ret

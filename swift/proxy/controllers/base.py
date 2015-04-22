@@ -409,9 +409,9 @@ class Controller(object):
         :param etag: etag
         :returns: webob.Response object with the correct status, body, etc. set
         """
-        # syslog.syslog(syslog.LOG_ERR,'best_response:           '+str(statuses))  
-        # syslog.syslog(syslog.LOG_ERR,str(traceback.print_stack()))
+        
         resp = Response(request=req)
+        resp.content_type = 'application/json'
         if len(statuses):
             for hundred in (HTTP_OK, HTTP_MULTIPLE_CHOICES, HTTP_BAD_REQUEST):
                 hstatuses = \
@@ -421,7 +421,7 @@ class Controller(object):
                     status_index = statuses.index(status)
                     resp.status = '%s %s' % (status, reasons[status_index])
                     resp.body = bodies[status_index]
-                    resp.content_type = 'text/html'
+                    resp.content_type = 'application/json'
                     if etag:
                         resp.headers['etag'] = etag.strip('"')
                     return resp

@@ -142,7 +142,7 @@ def run_wsgi(conf_file, app_section, *args, **kwargs):
     # redirect errors to logger and close stdio
     # if app_section in ['account-server']:
    
-    # capture_stdio(logger)
+    capture_stdio(logger)
 
     def run_server():
         wsgi.HttpProtocol.default_request_version = "HTTP/1.0"

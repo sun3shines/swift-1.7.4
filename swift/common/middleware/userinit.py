@@ -185,7 +185,8 @@ class Userinit(object):
         failed_files = []
         success_count = not_found_count = 0
         failed_file_response_type = HTTPBadRequest
-        
+        import pdb;pdb.set_trace() 
+        req.accept = 'application/json'
         out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
         if not out_content_type:
             return HTTPNotAcceptable(request=req)

@@ -158,6 +158,7 @@ class Application(object):
         try:
              
             req = self.update_request(Request(env))
+        
             return self.handle_request(req)(env, start_response)
         
         except UnicodeError:

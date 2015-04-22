@@ -286,6 +286,7 @@ class ObjectController(object):
             self.account_update(request, account, metadata['Content-Length'], add_flag=True)
             
         resp = HTTPCreated(request=request,etag=etag)
+        resp.content_type ='application/json'
         return resp
 
     @public
