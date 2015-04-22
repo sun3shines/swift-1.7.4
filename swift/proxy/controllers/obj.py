@@ -248,7 +248,7 @@ class ObjectController(Controller):
                 yield obj
                 
     def GETorHEAD(self, req):
-        import pdb;pdb.set_trace()
+        
         """Handle HTTP GET or HEAD requests."""
         
         partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
