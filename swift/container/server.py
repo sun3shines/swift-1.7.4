@@ -47,7 +47,7 @@ class ContainerController(object):
 
     # Ensure these are all lowercase
     save_headers = ['x-container-read', 'x-container-write',
-                    'x-container-sync-key', 'x-container-sync-to']
+                    'x-container-sync-key', 'x-container-sync-to','x-versions-location']
 
     def __init__(self, conf):
         self.logger = get_logger(conf, log_route='container-server')
@@ -302,7 +302,7 @@ class ContainerController(object):
         
         data = []
         for (name, size, etag) in container_list:    
-            data.append({ 'bytes': size,'hash': etag,'name': name})
+            data.append({ 'bytes': size,'md5': etag,'name': name,'modificationTime':str(time.time())})
     
         container_list = json.dumps(data)
         
@@ -317,6 +317,7 @@ class ContainerController(object):
     @public
     def POST(self, req):
         """Handle HTTP POST request."""
+        
         start_time = time.time()
         try:
             drive, part, account, container = split_path(unquote(req.path), 4)
@@ -344,6 +345,7 @@ class ContainerController(object):
             for key, value in req.headers.iteritems()
             if key.lower() in self.save_headers or
                key.lower().startswith('x-container-meta-'))
+        
         if metadata:
             if 'X-Container-Sync-To' in metadata:
                 if 'X-Container-Sync-To' not in broker.metadata or \

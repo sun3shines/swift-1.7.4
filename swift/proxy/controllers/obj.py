@@ -13,17 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# NOTE: swift_conn
-# You'll see swift_conn passed around a few places in this file. This is the
-# source httplib connection of whatever it is attached to.
-#   It is used when early termination of reading from the connection should
-# happen, such as when a range request is satisfied but there's still more the
-# source connection would like to send. To prevent having to read all the data
-# that could be left, the source connection can be .close() and then reads
-# commence to empty out any buffers.
-#   These shenanigans are to ensure all related objects can be garbage
-# collected. We've seen objects hang around forever otherwise.
-
 try:
     import simplejson as json
 except ImportError:
@@ -259,7 +248,7 @@ class ObjectController(Controller):
                 yield obj
                 
     def GETorHEAD(self, req):
-        
+        import pdb;pdb.set_trace()
         """Handle HTTP GET or HEAD requests."""
         
         partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
@@ -434,18 +423,12 @@ class ObjectController(Controller):
             hresp = self.GETorHEAD_base(hreq, _('Object'), partition, nodes,
                 hreq.path_info, len(nodes))
             
-            syslog.syslog(syslog.LOG_ERR,'object metadat: ' + str(hresp.headers))
-            
             is_manifest = 'x-static-large-object' in req.headers or \
                           'x-static-large-object' in hresp.headers
                           
             if hresp.status_int != HTTP_NOT_FOUND and not is_manifest:
-                # This is a version manifest and needs to be handled
-                # differently. First copy the existing data to a new object,
-                # then write the data from this request to the version manifest
-                # object.
+                
                 lcontainer = object_versions.split('/')[0]
-                # prefix_len = '%03x' % len(self.object_name)
                 lprefix = self.object_name + '/'
                 
                 new_ts = normalize_timestamp(float(time.time()))
@@ -574,6 +557,7 @@ class ObjectController(Controller):
             statuses.append(HTTP_SERVICE_UNAVAILABLE)
             reasons.append('')
             bodies.append('')
+        
         resp = self.best_response(req, statuses, reasons, bodies,
                     _('Object PUT'),etag=etag)
         

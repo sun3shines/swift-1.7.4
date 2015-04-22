@@ -383,20 +383,17 @@ class Controller(object):
         nodes = self.iter_nodes(part, start_nodes, ring)
         pile = GreenPile(len(start_nodes))
         for head in headers:
-            # syslog.syslog(syslog.LOG_ERR,'make_requests head:           '+str(head))
+            
             pile.spawn(self._make_request, nodes, part, method, path,
                        head, query_string, self.app.logger.thread_locals)
         response = [resp for resp in pile if resp]
-
-
-        syslog.syslog(syslog.LOG_ERR,'response: '+ str(response)) 
-
+        
         statuses, reasons, bodies = zip(*response)
         return self.best_response(req, statuses, reasons, bodies,
                   '%s %s' % (self.server_type, req.method))
 
     def best_response(self, req, statuses, reasons, bodies, server_type,
-                      etag=None):
+                      etag=None,jsondata=None):
         """
         Given a list of responses from several servers, choose the best to
         return to the API.
@@ -411,7 +408,7 @@ class Controller(object):
         """
         
         resp = Response(request=req)
-        resp.content_type = 'application/json'
+        
         if len(statuses):
             for hundred in (HTTP_OK, HTTP_MULTIPLE_CHOICES, HTTP_BAD_REQUEST):
                 hstatuses = \
@@ -419,11 +416,9 @@ class Controller(object):
                 if len(hstatuses) > len(statuses) / 2:
                     status = max(hstatuses)
                     status_index = statuses.index(status)
-                    resp.status = '%s %s' % (status, reasons[status_index])
+                    resp.status = '%s %s' % (status, reasons[status_index]) 
                     resp.body = bodies[status_index]
-                    resp.content_type = 'application/json'
-                    if etag:
-                        resp.headers['etag'] = etag.strip('"')
+                    
                     return resp
         self.app.logger.error(_('%(type)s returning 503 for %(statuses)s'),
                               {'type': server_type, 'statuses': statuses})
@@ -583,6 +578,7 @@ class Controller(object):
                 continue
             if is_success(possible_source.status) or \
                is_redirection(possible_source.status):
+                
                 # 404 if we know we don't have a synced copy
                 if not float(possible_source.getheader('X-PUT-Timestamp', 1)):
                     statuses.append(HTTP_NOT_FOUND)
@@ -590,6 +586,7 @@ class Controller(object):
                     bodies.append('')
                     possible_source.read()
                     continue
+                
                 if newest:
                     if sources:
                         ts = float(source.getheader('x-put-timestamp') or
@@ -611,6 +608,7 @@ class Controller(object):
                 else:
                     source = possible_source
                     break
+                
             statuses.append(possible_source.status)
             reasons.append(possible_source.reason)
             bodies.append(possible_source.read())
@@ -655,11 +653,12 @@ class Controller(object):
                 res.environ['swift_x_timestamp'] = \
                     source.getheader('x-timestamp')
                 update_headers(res, {'accept-ranges': 'bytes'})
+                res.body = source.read()
                 res.content_length = source.getheader('Content-Length')
                 if source.getheader('Content-Type'):
                     res.charset = None
                     res.content_type = source.getheader('Content-Type')
                 return res
-        # syslog.syslog(syslog.LOG_ERR,'GETorHEAD_base:           '+str(statuses)) 
+        
         return self.best_response(req, statuses, reasons, bodies,
                                   '%s %s' % (server_type, req.method))

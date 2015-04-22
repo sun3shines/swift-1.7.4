@@ -185,7 +185,7 @@ class Userinit(object):
         failed_files = []
         success_count = not_found_count = 0
         failed_file_response_type = HTTPBadRequest
-        import pdb;pdb.set_trace() 
+        
         req.accept = 'application/json'
         out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
         if not out_content_type:
@@ -195,13 +195,8 @@ class Userinit(object):
         
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
             
         
@@ -209,39 +204,24 @@ class Userinit(object):
         
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
             
         new_path,resp = self.handle_versions(req)
         
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
             
         new_path,resp = self.handle_versions_metadata(req)
         
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
             
             
@@ -249,56 +229,39 @@ class Userinit(object):
         
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
             
         new_path,resp = self.handle_recycle(req)
+        
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
         
         new_path,resp = self.handle_recycle_meta(req)
+        
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
         
         new_path,resp = self.handle_recycle_user(req)
+        
         if resp.status_int // 100 == 2:
             success_count += 1
-        elif resp.status_int == HTTP_NOT_FOUND:
-            not_found_count += 1
-        elif resp.status_int == HTTP_UNAUTHORIZED:
-            return HTTPUnauthorized(request=req)
         else:
-            if resp.status_int // 100 == 5:
-                failed_file_response_type = HTTPBadGateway
+            not_found_count += 1
             failed_files.append([quote(new_path), resp.status])
         
         
         resp_body = get_response_body(
             out_content_type,
-            {'Number Recycled': success_count,
-             'Number Not Found': not_found_count},
+            {'Number successed': success_count,
+             'Number failed': not_found_count},
             failed_files)
         
         if (success_count or not_found_count) and not failed_files:

@@ -110,7 +110,7 @@ def run_wsgi(conf_file, app_section, *args, **kwargs):
     :param app_section: App name from conf file to load config from
     """
 
-    syslog.syslog(syslog.LOG_ERR,str(conf_file)+' '+str(app_section))
+    
     try:
         conf = appconfig('config:%s' % conf_file, name=app_section)
     except Exception, e:

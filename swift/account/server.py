@@ -26,7 +26,7 @@ from webob import Request, Response
 from webob.exc import HTTPAccepted, HTTPBadRequest, \
     HTTPCreated, HTTPForbidden, HTTPInternalServerError, \
     HTTPMethodNotAllowed, HTTPNoContent, HTTPNotFound, \
-    HTTPPreconditionFailed, HTTPConflict
+    HTTPPreconditionFailed, HTTPConflict,HTTPOk
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
@@ -133,12 +133,7 @@ class AccountController(object):
     def HEAD(self, req):
         
         """Handle HTTP HEAD request."""
-        # TODO(refactor): The account server used to provide a 'account and
-        # container existence check all-in-one' call by doing a HEAD with a
-        # container path. However, container existence is now checked with the
-        # container servers directly so this is no longer needed. We should
-        # refactor out the container existence check here and retest
-        # everything.
+        
         start_time = time.time()
         try:
             drive, part, account, container = split_path(unquote(req.path),
@@ -167,7 +162,9 @@ class AccountController(object):
         headers.update((key, value)
             for key, (value, timestamp) in broker.metadata.iteritems()
             if value != '')
-        return HTTPNoContent(request=req, headers=headers)
+        
+        response = HTTPNoContent(request=req,headers=headers)
+        return response
 
     @public
     def GET(self, req):

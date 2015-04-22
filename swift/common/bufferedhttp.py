@@ -127,12 +127,6 @@ def http_connect(ipaddr, port, device, partition, method, path,
     :param ssl: set True if SSL should be used (default: False)
     :returns: HTTPConnection object
     """
-    # syslog.syslog(syslog.LOG_ERR,str(traceback.print_stack()))
-    funstr = 'http_connect '
-    logstr1 = 'ipaddr: %s,port: %s,device: %s, partition: %s, method: %s ' % (str(ipaddr),str(port),str(device),str(partition),str(method))
-    logstr2 = 'path: %s,headers= %s, query_string= %s, ssl= %s' % (str(path),str(headers),str(query_string),str(ssl))
-    logstr = funstr+ logstr1+ logstr2
-    syslog.syslog(syslog.LOG_ERR,logstr)
     
     if not port:
         port = 443 if ssl else 80

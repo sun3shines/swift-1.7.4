@@ -56,7 +56,7 @@ from swift.common.http import is_success, HTTPInsufficientStorage, \
 from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
     HTTP_NOT_FOUND
 
-from swift.common.utils import get_uuid
+from swift.common.utils import get_uuid,json
 
 
 DATADIR = 'objects'
@@ -247,6 +247,7 @@ class ObjectController(object):
         etag = md5()
         upload_size = 0
         last_sync = 0
+        hdata = {}
         with file.mkstemp() as (fd, tmppath):
             if 'content-length' in request.headers:
                 try:
@@ -285,8 +286,13 @@ class ObjectController(object):
             
             self.account_update(request, account, metadata['Content-Length'], add_flag=True)
             
-        resp = HTTPCreated(request=request,etag=etag)
-        resp.content_type ='application/json'
+            hdata = {'md5':etag,'size':metadata['Content-Length']}
+            hdata['ctime'] = hdata['mtime'] = time.time()
+            hdata['path'] = '/'.join(['',container,obj])
+            hdata = json.dumps(hdata)
+        
+        resp = HTTPCreated(body=hdata,request=request)
+        
         return resp
 
     @public
@@ -354,10 +360,15 @@ class ObjectController(object):
             file.quarantine()
             return HTTPNotFound(request=request)
         
+        '''
         response = Response(request=request, conditional_response=True)
         response.etag = file.metadata['ETag']
         response.content_length = file_size
+        '''
         
+        response = HTTPNoContent(request=request)
+        response.etag = file.metadata['ETag']
+        response.content_length = file_size
         return response
     
     @public

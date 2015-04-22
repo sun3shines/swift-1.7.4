@@ -23,24 +23,7 @@ from swift.proxy.controllers.base import get_account_info
 from swift.common.utils import split_path
 
 class AccountQuotaMiddleware(object):
-    """
-    account_quotas is a middleware which blocks write requests (PUT, POST) if a
-    given quota (in bytes) is exceeded while DELETE requests are still allowed.
 
-    account_quotas uses the x-account-meta-quota-bytes metadata to store the
-    quota. Write requests to this metadata setting are only allowed for
-    resellers. There is no quota limit if x-account-meta-quota-bytes is not
-    set.
-
-    The following shows an example proxy-server.conf:
-
-    [pipeline:main]
-    pipeline = catch_errors cache tempauth account-quotas proxy-server
-
-    [filter:account-quotas]
-    use = egg:swift#account_quotas
-
-    """
 
     def __init__(self, app, *args, **kwargs):
         self.app = app
@@ -60,7 +43,6 @@ class AccountQuotaMiddleware(object):
             if not new_quota.isdigit():
                 return HTTPBadRequest()
             return self.app
-
 
         account_info = get_account_info(request.environ, self.app)
         new_size = int(account_info['bytes']) + (request.content_length or 0)

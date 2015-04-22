@@ -99,7 +99,7 @@ class ContainerController(Controller):
         container_partition, containers = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         headers = []
         for account in accounts:
-            # syslog.syslog(syslog.LOG_ERR,'container PUT accounts:    '+str(accounts))
+            
             nheaders = {'X-Timestamp': normalize_timestamp(time.time()),
                         'x-trans-id': self.trans_id,
                         'X-Account-Host': '%(ip)s:%(port)s' % account,

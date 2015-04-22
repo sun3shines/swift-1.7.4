@@ -154,7 +154,6 @@ class Application(object):
  
     
     def __call__(self, env, start_response):
-        
         try:
              
             req = self.update_request(Request(env))
