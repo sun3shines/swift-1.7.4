@@ -653,7 +653,7 @@ class Controller(object):
                 res.environ['swift_x_timestamp'] = \
                     source.getheader('x-timestamp')
                 update_headers(res, {'accept-ranges': 'bytes'})
-                res.body = source.read()
+                
                 res.content_length = source.getheader('Content-Length')
                 if source.getheader('Content-Type'):
                     res.charset = None
@@ -662,3 +662,115 @@ class Controller(object):
         
         return self.best_response(req, statuses, reasons, bodies,
                                   '%s %s' % (server_type, req.method))
+
+
+    def META_base(self, req, server_type, partition, nodes, path,
+                       attempts):
+        """
+        Base handler for HTTP GET or HEAD requests.
+
+        :param req: webob.Request object
+        :param server_type: server type
+        :param partition: partition
+        :param nodes: nodes
+        :param path: path for the request
+        :param attempts: number of attempts to try
+        :returns: webob.Response object
+        """
+        statuses = []
+        reasons = []
+        bodies = []
+        source = None
+        sources = []
+        newest = req.headers.get('x-newest', 'f').lower() in TRUE_VALUES
+        nodes = iter(nodes)
+        while len(statuses) < attempts:
+            try:
+                node = nodes.next()
+            except StopIteration:
+                break
+            if self.error_limited(node):
+                continue
+            try:
+                with ConnectionTimeout(self.app.conn_timeout):
+                    headers = dict(req.headers)
+                    headers['Connection'] = 'close'
+                    conn = http_connect(node['ip'], node['port'],
+                        node['device'], partition, req.method, path,
+                        headers=headers,
+                        query_string=req.query_string)
+                with Timeout(self.app.node_timeout):
+                    possible_source = conn.getresponse()
+                    # See NOTE: swift_conn at top of file about this.
+                    possible_source.swift_conn = conn
+            except (Exception, Timeout):
+                self.exception_occurred(node, server_type,
+                    _('Trying to %(method)s %(path)s') %
+                    {'method': req.method, 'path': req.path})
+                continue
+            if possible_source.status == HTTP_INSUFFICIENT_STORAGE:
+                self.error_limit(node)
+                continue
+            if is_success(possible_source.status) or \
+               is_redirection(possible_source.status):
+                
+                # 404 if we know we don't have a synced copy
+                if not float(possible_source.getheader('X-PUT-Timestamp', 1)):
+                    statuses.append(HTTP_NOT_FOUND)
+                    reasons.append('')
+                    bodies.append('')
+                    possible_source.read()
+                    continue
+                
+                if newest:
+                    if sources:
+                        ts = float(source.getheader('x-put-timestamp') or
+                                   source.getheader('x-timestamp') or 0)
+                        pts = float(
+                            possible_source.getheader('x-put-timestamp') or
+                            possible_source.getheader('x-timestamp') or 0)
+                        if pts > ts:
+                            sources.insert(0, possible_source)
+                        else:
+                            sources.append(possible_source)
+                    else:
+                        sources.insert(0, possible_source)
+                    source = sources[0]
+                    statuses.append(source.status)
+                    reasons.append(source.reason)
+                    bodies.append('')
+                    continue
+                else:
+                    source = possible_source
+                    break
+                
+            statuses.append(possible_source.status)
+            reasons.append(possible_source.reason)
+            bodies.append(possible_source.read())
+            if is_server_error(possible_source.status):
+                self.error_occurred(node, _('ERROR %(status)d %(body)s ' \
+                    'From %(type)s Server') %
+                    {'status': possible_source.status,
+                    'body': bodies[-1][:1024], 'type': server_type})
+                
+        if source:
+            if req.method == 'META' and \
+               source.status in (HTTP_OK, HTTP_PARTIAL_CONTENT):
+                if newest:
+                    # we need to close all hanging swift_conns
+                    sources.pop(0)
+                    for src in sources:
+                        self.close_swift_conn(src)
+
+                res = Response(request=req, conditional_response=True)
+                res.app_iter = self._make_app_iter(node, source)
+                
+                res.swift_conn = source.swift_conn
+                update_headers(res, source.getheaders())
+                
+                res.status = source.status
+                return res
+            
+        return self.best_response(req, statuses, reasons, bodies,
+                                  '%s %s' % (server_type, req.method))
+        

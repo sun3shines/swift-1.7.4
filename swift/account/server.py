@@ -165,7 +165,46 @@ class AccountController(object):
         
         response = HTTPNoContent(request=req,headers=headers)
         return response
-
+    
+    
+    @public
+    def META(self, req):
+        
+        start_time = time.time()
+        try:
+            drive, part, account, container = split_path(unquote(req.path),
+                                                         3, 4)
+            validate_device_partition(drive, part)
+        except ValueError, err:
+            return HTTPBadRequest(body=str(err), content_type='text/plain',
+                                                    request=req)
+        if self.mount_check and not check_mount(self.root, drive):
+            return HTTPInsufficientStorage(drive=drive, request=req)
+        broker = self._get_account_broker(drive, part, account)
+        
+        if broker.is_deleted():
+            return HTTPNotFound(request=req)
+        info = broker.get_info()
+        headers = {
+            'X-Account-Container-Count': info['container_count'],
+            'X-Account-Object-Count': info['object_count'],
+            'X-Account-Bytes-Used': info['bytes_used'],
+            'X-Timestamp': info['created_at'],
+            'X-PUT-Timestamp': info['put_timestamp']}
+        if container:
+            container_ts = broker.get_container_timestamp(container)
+            if container_ts is not None:
+                headers['X-Container-Timestamp'] = container_ts
+        headers.update((key, value)
+            for key, (value, timestamp) in broker.metadata.iteritems()
+            if value != '')
+        
+        hdata = json.dumps(headers)
+        ret = Response(body=hdata, request=req)
+        
+        ret.charset = 'utf-8'
+        return ret
+    
     @public
     def GET(self, req):
         """Handle HTTP GET request."""
@@ -259,6 +298,7 @@ class AccountController(object):
         return HTTPNoContent(request=req)
 
     def __call__(self, env, start_response):
+        import pdb;pdb.set_trace()
         start_time = time.time()
         req = Request(env)
         

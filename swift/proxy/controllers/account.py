@@ -72,7 +72,39 @@ class AccountController(Controller):
             resp = self.GETorHEAD_base(req, _('Account'), partition, nodes,
                 req.path_info.rstrip('/'), len(nodes))
         return resp
+    
+    @public
+    def META(self, req):
+        """Handler for HTTP GET/HEAD requests."""
+        
+        partition, nodes = self.app.account_ring.get_nodes(self.account_name)
+        shuffle(nodes)
+        resp = self.META_base(req, _('Account'), partition, nodes,
+                req.path_info.rstrip('/'), len(nodes))
+        
+        if resp.status_int == HTTP_NOT_FOUND and self.app.account_autocreate:
+            if len(self.account_name) > MAX_ACCOUNT_NAME_LENGTH:
+                resp = HTTPBadRequest(request=req)
+                resp.body = 'Account name length of %d longer than %d' % \
+                            (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
+                return resp
+            headers = {'X-Timestamp': normalize_timestamp(time.time()),
+                       'X-Trans-Id': self.trans_id,
+                       'Connection': 'close'}
+            resp = self.make_requests(
+                Request.blank('/v1/' + self.account_name),
+                self.app.account_ring, partition, 'PUT',
+                '/' + self.account_name, [headers] * len(nodes))
+            if not is_success(resp.status_int):
+                self.app.logger.warning('Could not autocreate account %r' %
+                                        self.account_name)
+                return resp
+            resp = self.META_base(req, _('Account'), partition, nodes,
+                req.path_info.rstrip('/'), len(nodes))
+            
+        return resp
 
+    
     @public
     def PUT(self, req):
         """HTTP PUT request handler."""

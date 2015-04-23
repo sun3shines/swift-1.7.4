@@ -295,13 +295,7 @@ class ObjectController(Controller):
                 resp = Response(headers=resp.headers, request=req,
                                 conditional_response=True)
                 if req.method == 'HEAD':
-                    # These shenanigans are because swob translates the HEAD
-                    # request into a swob EmptyResponse for the body, which
-                    # has a len, which eventlet translates as needing a
-                    # content-length header added. So we call the original
-                    # swob resp for the headers but return an empty iterator
-                    # for the body.
-
+                    
                     def head_response(environ, start_response):
                         resp(environ, start_response)
                         return iter([])
@@ -314,8 +308,7 @@ class ObjectController(Controller):
                         is_slo=(large_object == 'SLO'))
 
             else:
-                # For objects with a reasonable number of segments, we'll serve
-                # them with a set content-length and computed etag.
+                
                 if listing:
                     listing = list(listing)
                     try:
@@ -359,6 +352,19 @@ class ObjectController(Controller):
     def GET(self, req):
         """Handler for HTTP GET requests."""
         return self.GETorHEAD(req)
+
+    @public
+    @delay_denial
+    def META(self, req):
+        
+        part, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name,self.object_name)
+        
+        shuffle(nodes)
+        resp = self.META_base(req, _('Object'), part, nodes,
+                req.path_info, len(nodes))
+
+        return resp
+    
 
     def _send_file(self, conn, path):
         """Method for a file PUT coro"""

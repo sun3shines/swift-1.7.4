@@ -372,6 +372,37 @@ class ObjectController(object):
         return response
     
     @public
+    def META(self, request):
+        
+        try:
+            device, partition, account, container, obj = \
+                split_path(unquote(request.path), 5, 5, True)
+            validate_device_partition(device, partition)
+        except ValueError, err:
+            resp = HTTPBadRequest(request=request)
+            resp.content_type = 'text/plain'
+            resp.body = str(err)
+            return resp
+        if self.mount_check and not check_mount(self.devices, device):
+            return HTTPInsufficientStorage(drive=device, request=request)
+        file = DiskFile(self.devices, device, partition, account, container,
+                        obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+        
+        if file.is_deleted():
+            return HTTPNotFound(request=request)
+        
+        try:
+            file_size = file.get_data_file_size()
+        except (DiskFileError, DiskFileNotExist):
+            file.quarantine()
+            return HTTPNotFound(request=request)
+        
+        hdata = json.dumps(file.metadata)
+        response = Response(body=hdata,request=request)
+        response.charset = 'utf-8'
+        return response
+    
+    @public
     def DELETE(self, request):
         """Handle HTTP DELETE requests for the Swift Object Server."""
         start_time = time.time()

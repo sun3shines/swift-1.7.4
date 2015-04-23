@@ -82,6 +82,27 @@ class ContainerController(Controller):
         return self.GETorHEAD(req)
 
     @public
+    @delay_denial
+    def META(self, req):
+        
+        """Handler for HTTP META requests."""
+        if not self.account_info(self.account_name)[1]:
+            return HTTPNotFound(request=req)
+        part, nodes = self.app.container_ring.get_nodes(self.account_name, self.container_name)
+        
+        shuffle(nodes)
+        resp = self.META_base(req, _('Container'), part, nodes,
+                req.path_info, len(nodes))
+
+        if not req.environ.get('swift_owner', False):
+            for key in ('x-container-read', 'x-container-write',
+                        'x-container-sync-key', 'x-container-sync-to'):
+                if key in resp.headers:
+                    del resp.headers[key]
+        return resp
+    
+
+    @public
     def PUT(self, req):
         """HTTP PUT request handler."""
         

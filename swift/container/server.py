@@ -253,8 +253,45 @@ class ContainerController(object):
             for key, (value, timestamp) in broker.metadata.iteritems()
             if value != '' and (key.lower() in self.save_headers or
                                 key.lower().startswith('x-container-meta-')))
+        
         return HTTPNoContent(request=req, headers=headers)
-
+        
+    @public
+    def META(self, req):
+        """Handle HTTP HEAD request."""
+        
+        start_time = time.time()
+        try:
+            drive, part, account, container, obj = split_path(
+                unquote(req.path), 4, 5, True)
+            validate_device_partition(drive, part)
+        except ValueError, err:
+            return HTTPBadRequest(body=str(err), content_type='text/plain',
+                                request=req)
+        if self.mount_check and not check_mount(self.root, drive):
+            return HTTPInsufficientStorage(drive=drive, request=req)
+        broker = self._get_container_broker(drive, part, account, container)
+        
+        if broker.is_deleted():
+            return HTTPNotFound(request=req)
+        info = broker.get_info()
+        headers = {
+            'X-Container-Object-Count': info['object_count'],
+            'X-Container-Bytes-Used': info['bytes_used'],
+            'X-Timestamp': info['created_at'],
+            'X-PUT-Timestamp': info['put_timestamp'],
+        }
+        headers.update((key, value)
+            for key, (value, timestamp) in broker.metadata.iteritems()
+            if value != '' and (key.lower() in self.save_headers or
+                                key.lower().startswith('x-container-meta-')))
+        
+        hdata = json.dumps(headers)
+        ret = Response(body=hdata, request=req)
+        
+        ret.charset = 'utf-8'
+        return ret
+    
     @public
     def GET(self, req):
         """Handle HTTP GET request."""
