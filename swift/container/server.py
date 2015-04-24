@@ -205,15 +205,15 @@ class ContainerController(object):
                 if broker.is_deleted():
                     return HTTPConflict(request=req)
             metadata = {}
-            metadata.update((key, (value, timestamp))
+            metadata.update((key, value)
                 for key, value in req.headers.iteritems()
                 if key.lower() in self.save_headers or
                    key.lower().startswith('x-container-meta-'))
             if metadata:
                 if 'X-Container-Sync-To' in metadata:
                     if 'X-Container-Sync-To' not in broker.metadata or \
-                            metadata['X-Container-Sync-To'][0] != \
-                            broker.metadata['X-Container-Sync-To'][0]:
+                            metadata['X-Container-Sync-To'] != \
+                            broker.metadata['X-Container-Sync-To']:
                         broker.set_x_container_sync_points(-1, -1)
                 broker.update_metadata(metadata)
             resp = self.account_update(req, account, container, broker)
@@ -227,7 +227,6 @@ class ContainerController(object):
     @public
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
-        
         start_time = time.time()
         try:
             drive, part, account, container, obj = split_path(
@@ -250,7 +249,7 @@ class ContainerController(object):
             'X-PUT-Timestamp': info['put_timestamp'],
         }
         headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
+            for key, value in broker.metadata.iteritems()
             if value != '' and (key.lower() in self.save_headers or
                                 key.lower().startswith('x-container-meta-')))
         
@@ -282,7 +281,7 @@ class ContainerController(object):
             'X-PUT-Timestamp': info['put_timestamp'],
         }
         headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
+            for key, value in broker.metadata.iteritems()
             if value != '' and (key.lower() in self.save_headers or
                                 key.lower().startswith('x-container-meta-')))
         
@@ -378,7 +377,7 @@ class ContainerController(object):
             return HTTPNotFound(request=req)
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         metadata = {}
-        metadata.update((key, (value, timestamp))
+        metadata.update((key, value)
             for key, value in req.headers.iteritems()
             if key.lower() in self.save_headers or
                key.lower().startswith('x-container-meta-'))
@@ -386,8 +385,8 @@ class ContainerController(object):
         if metadata:
             if 'X-Container-Sync-To' in metadata:
                 if 'X-Container-Sync-To' not in broker.metadata or \
-                        metadata['X-Container-Sync-To'][0] != \
-                        broker.metadata['X-Container-Sync-To'][0]:
+                        metadata['X-Container-Sync-To']!= \
+                        broker.metadata['X-Container-Sync-To']:
                     broker.set_x_container_sync_points(-1, -1)
             broker.update_metadata(metadata)
         return HTTPNoContent(request=req)

@@ -78,7 +78,6 @@ class AccountController(object):
     @public
     def PUT(self, req):
         """Handle HTTP PUT request."""
-        
         start_time = time.time()
         try:
             drive, part, account, container = split_path(unquote(req.path),
@@ -118,7 +117,7 @@ class AccountController(object):
                 if broker.is_deleted():
                     return HTTPConflict(request=req)
             metadata = {}
-            metadata.update((key, (value, timestamp))
+            metadata.update((key, value)
                 for key, value in req.headers.iteritems()
                 if key.lower().startswith('x-account-meta-'))
             if metadata:
@@ -131,7 +130,6 @@ class AccountController(object):
 
     @public
     def HEAD(self, req):
-        
         """Handle HTTP HEAD request."""
         
         start_time = time.time()
@@ -160,7 +158,7 @@ class AccountController(object):
             if container_ts is not None:
                 headers['X-Container-Timestamp'] = container_ts
         headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
+            for key, value in broker.metadata.iteritems()
             if value != '')
         
         response = HTTPNoContent(request=req,headers=headers)
@@ -196,7 +194,7 @@ class AccountController(object):
             if container_ts is not None:
                 headers['X-Container-Timestamp'] = container_ts
         headers.update((key, value)
-            for key, (value, timestamp) in broker.metadata.iteritems()
+            for key, value in broker.metadata.iteritems()
             if value != '')
         
         hdata = json.dumps(headers)
@@ -290,7 +288,7 @@ class AccountController(object):
             return HTTPNotFound(request=req)
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         metadata = {}
-        metadata.update((key, (value, timestamp))
+        metadata.update((key, value)
             for key, value in req.headers.iteritems()
             if key.lower().startswith('x-account-meta-'))
         if metadata:

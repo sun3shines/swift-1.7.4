@@ -360,12 +360,6 @@ class ObjectController(object):
             file.quarantine()
             return HTTPNotFound(request=request)
         
-        '''
-        response = Response(request=request, conditional_response=True)
-        response.etag = file.metadata['ETag']
-        response.content_length = file_size
-        '''
-        
         response = HTTPNoContent(request=request)
         response.etag = file.metadata['ETag']
         response.content_length = file_size
@@ -425,7 +419,7 @@ class ObjectController(object):
         
         content_length = file.metadata['Content-Length']
         file.unlinkold()
-        
+        file.meta_del()
         self.account_update(request, account, content_length, add_flag=False)
         
         resp = response_class(request=request)
@@ -469,6 +463,7 @@ class ObjectController(object):
             
         user_file.move(src_file.data_file)
         
+        
         if user_file.is_deleted():
             return HTTPConflict(request=req)
             
@@ -479,6 +474,7 @@ class ObjectController(object):
 
         with user_file.mkstemp() as (fd, tmppath):
             user_file.put(fd, tmppath,user_file.metadata, extension='.meta')
+            src_file.meta_del()
             
         resp = HTTPNoContent(request=req)
         return resp
@@ -574,11 +570,13 @@ class ObjectController(object):
         
         dst_file.move(src_file.data_file)
         
+         
         if dst_file.is_deleted():
             return HTTPConflict(request=req)
             
         with dst_file.mkstemp() as (fd, tmppath):
             dst_file.put(fd, tmppath,src_file.metadata, extension='.meta')
+            src_file.meta_del()
             
         return HTTPCreated(request=req)
     
