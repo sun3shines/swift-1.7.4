@@ -298,7 +298,6 @@ class AccountController(object):
         return HTTPNoContent(request=req)
 
     def __call__(self, env, start_response):
-        import pdb;pdb.set_trace()
         start_time = time.time()
         req = Request(env)
         

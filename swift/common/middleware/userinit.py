@@ -136,42 +136,145 @@ class Userinit(object):
             
         return '',resp
     
-    def handle_user(self,req):
+    def handle_user(self,req,rdatas):
         
-        return self.handle_new_req(req, '/user' , 'PUT')
+        new_path,resp = self.handle_new_req(req, '/user' , 'PUT')
+        
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
     
-    def handle_quota(self,req):
+    def handle_quota(self,req,rdatas):
         
         new_headers = {'X-Account-Meta-Quota-Bytes': 1024*1024*1024}
-     
-        return self.handle_new_req(req, '', 'POST', new_headers)
+        new_path,resp=  self.handle_new_req(req, '', 'POST', new_headers)
     
-    def handle_versions(self,req):
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_versions(self,req,rdatas):
         
-        return self.handle_new_req(req, '/versions', 'PUT')
-    
-    def handle_versions_metadata(self,req):
+        new_path,resp=  self.handle_new_req(req, '/versions', 'PUT')
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+                    
+    def handle_versions_metadata(self,req,rdatas):
         
         new_headers = {'X-Versions-Location': 'versions'}
+        new_path,resp=  self.handle_new_req(req, '/user', 'POST',new_headers)
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_segments(self,req,rdatas):
         
-        return self.handle_new_req(req, '/user', 'POST',new_headers)
-    
-    def handle_segments(self,req):
+        new_path,resp=  self.handle_new_req(req, '/segments', 'PUT' )
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+                
+    def handle_recycle(self,req,rdatas):
         
-        return self.handle_new_req(req, '/segments', 'PUT' )
-    
-    def handle_recycle(self,req):
+        new_path,resp=  self.handle_new_req(req, '/recycle', 'PUT')
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_recycle_meta(self,req,rdatas):
         
-        return self.handle_new_req(req, '/recycle', 'PUT')
-    
-    def handle_recycle_meta(self,req):
         qstr = 'op=MKDIRS&ftype=d&type=NORMAL'
-        return self.handle_new_req(req, '/recycle/meta', 'MKDIRS',qstr=qstr)
-    
-    def handle_recycle_user(self,req):
+        new_path,resp=  self.handle_new_req(req, '/recycle/meta', 'MKDIRS',qstr=qstr)
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_recycle_user(self,req,rdatas):
+        
         qstr = 'op=MKDIRS&ftype=d&type=NORMAL'
-        return self.handle_new_req(req, '/recycle/user', 'MKDIRS',qstr=qstr)
+        new_path,resp=  self.handle_new_req(req, '/recycle/user', 'MKDIRS',qstr=qstr)
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_private(self,req,rdatas):
+        
+        new_path,resp=  self.handle_new_req(req, '/private', 'PUT')
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_private_versions(self,req,rdatas):
+        
+        new_path,resp=  self.handle_new_req(req, '/private_versions', 'PUT')
+        
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_private_metadata(self,req,rdatas):
+        
+        new_headers = {'X-Versions-Location': 'private_versions'}
+        
+        new_path,resp=  self.handle_new_req(req, '/private', 'POST',new_headers)
+        
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
     
+    def handle_backup(self,req,rdatas):
+        
+        new_path,resp=  self.handle_new_req(req, '/backup', 'PUT')
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_backup_versions(self,req,rdatas):
+        
+        new_path,resp=  self.handle_new_req(req, '/backup_versions', 'PUT')
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
+    def handle_backup_metadata(self,req,rdatas):
+        
+        new_headers = {'X-Versions-Location': 'backup_versions'}
+        new_path,resp=  self.handle_new_req(req, '/backup', 'POST',new_headers)
+        
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            
     def account_exists(self,req):
         
         resp =  self.handle_new_req(req,'/user','HEAD')[1]
@@ -182,92 +285,52 @@ class Userinit(object):
     
     def handle_register(self, req):
         
-        failed_files = []
-        success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
+        rdatas = {'failed_files':[],'success_count':0,'not_found_count':0}
         
+        failed_file_response_type = HTTPBadRequest
         req.accept = 'application/json'
         out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
-        new_path,resp = self.handle_user(req)
+        self.handle_user(req,rdatas)
+    
+        self.handle_quota(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-            
+        self.handle_versions(req,rdatas)
         
-        new_path,resp = self.handle_quota(req)
+        self.handle_versions_metadata(req,rdatas)
+    
+        self.handle_segments(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-            
-        new_path,resp = self.handle_versions(req)
+        self.handle_recycle(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-            
-        new_path,resp = self.handle_versions_metadata(req)
+        self.handle_recycle_meta(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-            
-            
-        new_path,resp = self.handle_segments(req)
+        self.handle_recycle_user(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-            
-        new_path,resp = self.handle_recycle(req)
+        self.handle_private(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
+        self.handle_private_versions(req,rdatas)
         
-        new_path,resp = self.handle_recycle_meta(req)
+        self.handle_private_metadata(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
+        self.handle_backup(req,rdatas)
         
-        new_path,resp = self.handle_recycle_user(req)
+        self.handle_backup_versions(req,rdatas)
         
-        if resp.status_int // 100 == 2:
-            success_count += 1
-        else:
-            not_found_count += 1
-            failed_files.append([quote(new_path), resp.status])
-        
+        self.handle_backup_metadata(req,rdatas)
         
         resp_body = get_response_body(
             out_content_type,
-            {'Number successed': success_count,
-             'Number failed': not_found_count},
-            failed_files)
+            {'Number successed': rdatas['success_count'],
+             'Number failed': rdatas['not_found_count']},
+            rdatas['failed_files'])
         
-        if (success_count or not_found_count) and not failed_files:
+        if (rdatas['success_count'] or rdatas['not_found_count']) and not rdatas['failed_files']:
             return HTTPOk(resp_body, content_type=out_content_type)
         
-        if failed_files:
+        if rdatas['failed_files']:
             return failed_file_response_type(
                 resp_body, content_type=out_content_type)
             
@@ -281,7 +344,9 @@ class Userinit(object):
             
             if not self.account_exists(req):
                 return self.handle_register(req)
-
+        else:
+            if not self.account_exists(req):
+                return HTTPNotFound(request=req,body='account user not found')
         return self.app
 
 
