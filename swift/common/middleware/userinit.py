@@ -344,6 +344,8 @@ class Userinit(object):
             
             if not self.account_exists(req):
                 return self.handle_register(req)
+            else:
+                return HTTPBadRequest('account user alread exists')
         else:
             if not self.account_exists(req):
                 return HTTPNotFound(request=req,body='account user not found')
