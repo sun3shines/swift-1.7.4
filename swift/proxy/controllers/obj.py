@@ -586,6 +586,7 @@ class ObjectController(Controller):
         headers = []
         for container in containers:
             nheaders = dict(req.headers.iteritems())
+            nheaders['X-Timestamp']= normalize_timestamp(time.time())
             nheaders['Connection'] = 'close'
             nheaders['X-Container-Host'] = '%(ip)s:%(port)s' % container
             nheaders['X-Container-Partition'] = container_partition

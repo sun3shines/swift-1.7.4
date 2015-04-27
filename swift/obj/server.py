@@ -478,7 +478,8 @@ class ObjectController(object):
         user_file.metadata['user_path'] = '/' + src_container+ '/' + src_obj
         user_file.metadata['recycle_uuid'] = recycle_uuid
         user_file.metadata['ftype'] = 'f'
-
+        user_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
+        
         with user_file.mkstemp() as (fd, tmppath):
             user_file.put(fd, tmppath,user_file.metadata, extension='.meta')
             src_file.meta_del()
@@ -530,8 +531,10 @@ class ObjectController(object):
         if dst_file.is_deleted():
             return HTTPConflict(request=req)
         
+        dst_file.metadata = src_file.metadata
+        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
         with dst_file.mkstemp() as (fd, tmppath):
-            dst_file.put(fd, tmppath,src_file.metadata, extension='.meta')
+            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             
         self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
         
@@ -587,8 +590,10 @@ class ObjectController(object):
         if dst_file.is_deleted():
             return HTTPConflict(request=req)
             
+        dst_file.metadata = src_file.metadata
+        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
         with dst_file.mkstemp() as (fd, tmppath):
-            dst_file.put(fd, tmppath,src_file.metadata, extension='.meta')
+            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
         return HTTPCreated(request=req)
@@ -642,8 +647,10 @@ class ObjectController(object):
         if dst_file.is_deleted():
             return HTTPConflict(request=req)
             
+        dst_file.metadata = src_file.metadata
+        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
         with dst_file.mkstemp() as (fd, tmppath):
-            dst_file.put(fd, tmppath,src_file.metadata, extension='.meta')
+            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
         return HTTPCreated(request=req)
