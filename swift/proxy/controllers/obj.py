@@ -539,7 +539,8 @@ class ObjectController(Controller):
                     response = conn.getresponse()
                     statuses.append(response.status)
                     reasons.append(response.reason)
-                    bodies.append(response.read())
+                    body = response.read()
+                    bodies.append(body)
                     if response.status >= HTTP_INTERNAL_SERVER_ERROR:
                         self.error_occurred(conn.node,
                             _('ERROR %(status)d %(body)s From Object Server ' \
@@ -547,7 +548,8 @@ class ObjectController(Controller):
                             'body': bodies[-1][:1024], 'path': req.path})
                         
                     elif is_success(response.status):
-                        etags.add(response.getheader('etag').strip('"'))
+                        # etags.add(response.getheader('etag').strip('"'))
+                        etags.add(json.loads(body)['md5'])
                         
             except (Exception, Timeout):
                 self.exception_occurred(conn.node, _('Object'),

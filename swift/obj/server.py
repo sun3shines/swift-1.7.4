@@ -281,7 +281,7 @@ class ObjectController(object):
                 if header_key in request.headers:
                     header_caps = header_key.title()
                     metadata[header_caps] = request.headers[header_key]
-            syslog.syslog('object metadata: '+str(file.data_file)+'  '+str(etag))                
+                        
             file.put(fd, tmppath,metadata)
             
             self.account_update(request, account, metadata['Content-Length'], add_flag=True)

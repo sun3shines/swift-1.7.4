@@ -144,8 +144,9 @@ class DirerController(object):
             lcontainer = object_versions.split('/')[0]
             ver_broker = self._get_direr_broker(drive, part, account, lcontainer,direr)
             if not ver_broker.is_deleted():
+                versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
-                dirsize = 2*dirsize
+                dirsize = versize + dirsize
                                 
         self.account_update(req, account, dirsize, add_flag=False)
         return HTTPNoContent(request=req)
@@ -178,8 +179,9 @@ class DirerController(object):
             lcontainer = object_versions.split('/')[0]
             ver_broker = self._get_direr_broker(drive, part, account, lcontainer,direr)
             if not ver_broker.is_deleted():
+                versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
-                dirsize = 2*dirsize
+                dirsize = versize + dirsize
         self.account_update(req, account, dirsize, add_flag=False)
                      
         return HTTPNoContent(request=req)
@@ -411,7 +413,8 @@ class DirerController(object):
                     dst_broker.delete_db()
                                 
                 dst_broker.copy(ver_broker.datadir)
-                dirsize = 2*dirsize
+                dstsize = dst_broker.get_data_dir_size()
+                dirsize = dstsize + dirsize
                 
         self.account_update(req, account, dirsize, add_flag=True)
         
