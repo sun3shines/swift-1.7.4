@@ -512,11 +512,12 @@ class DirerController(object):
         container_list = broker.list_objects_iter()
         if out_content_type == 'application/json':
             data = []
-            for (name, size, etag) in container_list:
+            for (name, create_at,size, etag) in container_list:
                 
                 data.append({'bytes': size,
                              'hash': etag,
-                            'name': name})
+                            'name': name,
+                            'modificationTime':str(create_at)})
             container_list = json.dumps(data)
        
         else:

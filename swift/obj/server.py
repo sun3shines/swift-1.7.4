@@ -235,6 +235,12 @@ class ObjectController(object):
         if self.mount_check and not check_mount(self.devices, device):
             return HTTPInsufficientStorage(drive=device, request=request)
         
+        if 'x-timestamp' not in request.headers or \
+                    not check_float(request.headers['x-timestamp']):
+            self.logger.increment('PUT.errors')
+            return HTTPBadRequest(body='Missing timestamp', request=request,
+                        content_type='text/plain')
+            
         error_response = check_object_creation(request, obj)
         if error_response:
             return error_response
@@ -275,6 +281,7 @@ class ObjectController(object):
             metadata = {
                 'ETag': etag,
                 'Content-Length': str(os.fstat(fd).st_size),
+                'X-Timestamp': request.headers['x-timestamp'],
             }
             
             for header_key in self.allowed_headers:
@@ -287,7 +294,7 @@ class ObjectController(object):
             self.account_update(request, account, metadata['Content-Length'], add_flag=True)
             
             hdata = {'md5':etag,'size':metadata['Content-Length']}
-            hdata['ctime'] = hdata['mtime'] = time.time()
+            hdata['ctime'] = hdata['mtime'] = metadata['X-Timestamp']
             hdata['path'] = '/'.join(['',container,obj])
             hdata = json.dumps(hdata)
         
@@ -500,6 +507,12 @@ class ObjectController(object):
         if self.mount_check and not check_mount(self.devices, device):
             return HTTPInsufficientStorage(drive=device, request=req)
 
+        if 'x-timestamp' not in req.headers or \
+                    not check_float(req.headers['x-timestamp']):
+            self.logger.increment('PUT.errors')
+            return HTTPBadRequest(body='Missing timestamp', request=req,
+                        content_type='text/plain')
+            
         src_file = DiskFile(self.devices, device, partition, account, src_container,
                         src_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         

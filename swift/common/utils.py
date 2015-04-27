@@ -1420,3 +1420,14 @@ def get_uuid():
         i = i + 1    
     return "".join(array_uuid)
 
+def cache_from_env(env):
+    """
+    Get memcache connection pool from the environment (which had been
+    previously set by the memcache middleware
+
+    :param env: wsgi environment dict
+
+    :returns: swift.common.memcached.MemcacheRing from environment
+    """
+    return item_from_env(env, 'swift.cache')
+

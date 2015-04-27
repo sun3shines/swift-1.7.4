@@ -229,11 +229,7 @@ class ObjectController(Controller):
             lresp = self.GETorHEAD_base(lreq, _('Container'),
                 lpartition, lnodes, lreq.path_info,
                 len(lnodes))
-            if 'swift.authorize' in env:
-                lreq.acl = lresp.headers.get('x-container-read')
-                aresp = env['swift.authorize'](lreq)
-                if aresp:
-                    raise ListingIterNotAuthorized(aresp)
+            
             if lresp.status_int == HTTP_NOT_FOUND:
                 raise ListingIterNotFound()
             elif not is_success(lresp.status_int):
@@ -419,7 +415,8 @@ class ObjectController(Controller):
         delete_at_part = delete_at_nodes = None
         
         partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
-            
+        req.headers['X-Timestamp'] = normalize_timestamp(time.time())
+        
         error_response = check_object_creation(req, self.object_name)
         if error_response:
             return error_response

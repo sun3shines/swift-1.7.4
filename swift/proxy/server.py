@@ -228,9 +228,6 @@ class Application(object):
             if path_parts['version']:
                 req.path_info_pop()
     
-            if req.environ.has_key('swift.authorize'):        
-                req.environ.pop('swift.authorize')
-            
             req.environ['swift.orig_req_method'] = req.method
             return handler(req)
         except (Exception, Timeout):
