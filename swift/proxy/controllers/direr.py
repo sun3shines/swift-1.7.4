@@ -105,28 +105,7 @@ class DirerController(Controller):
         resp = self.make_requests(req, self.app.direr_ring,
                 direr_partition, 'PUT', req.path_info, headers)
         return resp
-    
-    @public
-    def POST(self, req):
         
-        (container_partition, containers,_) = self.container_info(self.account_name, self.container_name,
-                account_autocreate=self.app.account_autocreate)
-        
-        if not containers:
-            return HTTPNotFound(request=req)
-        
-        direr_partition, direr_nodes = self.app.direr_ring.get_nodes(self.account_name, self.container_name, self.direr_name)
-        
-        headers = {'X-Timestamp': normalize_timestamp(time.time()),
-                   'x-trans-id': self.trans_id,
-                   'Connection': 'close'}
-        self.transfer_headers(req.headers, headers)
-            
-        headers['x-ftype'] = req.GET['ftype']
-        resp = self.make_requests(req, self.app.direr_ring,
-                direr_partition, 'POST', req.path_info, [headers] * len(direr_nodes))
-        return resp
-    
     @public
     def DELETE(self, req):
         """HTTP DELETE request handler."""

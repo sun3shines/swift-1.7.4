@@ -71,6 +71,49 @@ FORMAT2CONTENT_TYPE = {'plain': 'text/plain', 'json': 'application/json',
                        'xml': 'application/xml'}
 
 
+def check_metadata(req, target_type):
+    """
+    Check metadata sent in the request headers.
+
+    :param req: request object
+    :param target_type: str: one of: object, container, or account: indicates
+                        which type the target storage for the metadata is
+    :raises HTTPBadRequest: bad metadata
+    """
+    prefix = 'x-%s' % (target_type)
+    meta_count = 0
+    meta_size = 0
+    for key, value in req.headers.iteritems():
+        
+        if not key.lower().startswith(prefix):
+            continue
+        if not key:
+            return HTTPBadRequest(body='Metadata name cannot be empty',
+                    request=req, content_type='text/plain')
+            
+        meta_count += 1
+        meta_size += len(key) + len(value)
+        if len(key) > MAX_META_NAME_LENGTH:
+            return HTTPBadRequest(
+                    body='Metadata name too long; max %d'
+                        % MAX_META_NAME_LENGTH,
+                    request=req, content_type='text/plain')
+        elif len(value) > MAX_META_VALUE_LENGTH:
+            return HTTPBadRequest(
+                    body='Metadata value too long; max %d'
+                        % MAX_META_VALUE_LENGTH,
+                    request=req, content_type='text/plain')
+        elif meta_count > MAX_META_COUNT:
+            return HTTPBadRequest(
+                    body='Too many metadata items; max %d' % MAX_META_COUNT,
+                    request=req, content_type='text/plain')
+        elif meta_size > MAX_META_OVERALL_SIZE:
+            return HTTPBadRequest(
+                    body='Total metadata too large; max %d'
+                        % MAX_META_OVERALL_SIZE,
+                    request=req, content_type='text/plain')
+    return None
+
 def check_object_creation(req, object_name):
     """
     Check to ensure that everything is alright about an object to be created.

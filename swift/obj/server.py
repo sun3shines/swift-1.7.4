@@ -655,6 +655,60 @@ class ObjectController(object):
             
         return HTTPCreated(request=req)
     
+    @public
+    def POST(self, request):
+        
+        """Handle HTTP POST requests for the Swift Object Server."""
+        start_time = time.time()
+        try:
+            device, partition, account, container, obj = \
+                split_path(unquote(request.path), 5, 5, True)
+            validate_device_partition(device, partition)
+        except ValueError, err:
+            self.logger.increment('POST.errors')
+            return HTTPBadRequest(body=str(err), request=request,
+                        content_type='text/plain')
+        if 'x-timestamp' not in request.headers or \
+                    not check_float(request.headers['x-timestamp']):
+            self.logger.increment('POST.errors')
+            return HTTPBadRequest(body='Missing timestamp', request=request,
+                        content_type='text/plain')
+            
+        
+        if self.mount_check and not check_mount(self.devices, device):
+            self.logger.increment('POST.errors')
+            return HTTPInsufficientStorage(drive=device, request=request)
+        
+        file = DiskFile(self.devices, device, partition, account, container,
+                        obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+
+        if file.is_deleted():
+            response_class = HTTPNotFound
+        else:
+            response_class = HTTPAccepted
+        try:
+            file_size = file.get_data_file_size()
+            
+        except (DiskFileError, DiskFileNotExist):
+            file.quarantine()
+            return HTTPNotFound(request=request)
+        
+        metadata = {'X-Timestamp': request.headers['x-timestamp']}
+        
+        # allow_headers or x-object-meta-*
+        
+        metadata.update(file.metadata)
+        
+        for key,val in request.headers.iteritems():
+            if key.lower().startswith('x-object-'):
+                metadata[key] = str(val)
+                
+        with file.mkstemp() as (fd, tmppath):
+            file.put(fd, tmppath, metadata, extension='.meta')
+        self.logger.timing_since('POST.timing', start_time)
+        
+        return response_class(request=request)
+    
     def __call__(self, env, start_response):
         """WSGI Application entry point for the Swift Object Server."""
 

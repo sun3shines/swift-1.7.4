@@ -136,9 +136,9 @@ class Userinit(object):
             
         return '',resp
     
-    def handle_user(self,req,rdatas):
+    def handle_normal(self,req,rdatas):
         
-        new_path,resp = self.handle_new_req(req, '/user' , 'PUT')
+        new_path,resp = self.handle_new_req(req, '/normal' , 'PUT')
         
         if resp.status_int // 100 == 2:
             rdatas['success_count'] = rdatas['success_count'] + 1
@@ -158,19 +158,19 @@ class Userinit(object):
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
             
-    def handle_versions(self,req,rdatas):
+    def handle_normal_versions(self,req,rdatas):
         
-        new_path,resp=  self.handle_new_req(req, '/versions', 'PUT')
+        new_path,resp=  self.handle_new_req(req, '/normal_versions', 'PUT')
         if resp.status_int // 100 == 2:
             rdatas['success_count'] = rdatas['success_count'] + 1
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
                     
-    def handle_versions_metadata(self,req,rdatas):
+    def handle_normal_metadata(self,req,rdatas):
         
         new_headers = {'X-Versions-Location': 'versions'}
-        new_path,resp=  self.handle_new_req(req, '/user', 'POST',new_headers)
+        new_path,resp=  self.handle_new_req(req, '/normal', 'POST',new_headers)
         if resp.status_int // 100 == 2:
             rdatas['success_count'] = rdatas['success_count'] + 1
         else:
@@ -277,7 +277,7 @@ class Userinit(object):
             
     def account_exists(self,req):
         
-        resp =  self.handle_new_req(req,'/user','HEAD')[1]
+        resp =  self.handle_new_req(req,'/normal','HEAD')[1]
         
         if resp.status_int == HTTP_NOT_FOUND:
             return False
@@ -293,13 +293,13 @@ class Userinit(object):
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
-        self.handle_user(req,rdatas)
+        self.handle_normal(req,rdatas)
     
         self.handle_quota(req,rdatas)
         
-        self.handle_versions(req,rdatas)
+        self.handle_normal_versions(req,rdatas)
         
-        self.handle_versions_metadata(req,rdatas)
+        self.handle_normal_metadata(req,rdatas)
     
         self.handle_segments(req,rdatas)
         

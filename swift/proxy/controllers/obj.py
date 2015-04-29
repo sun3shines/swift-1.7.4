@@ -39,7 +39,7 @@ from swift.common.utils import ContextPool, normalize_timestamp, TRUE_VALUES, \
     
 from swift.common.bufferedhttp import http_connect
 from swift.common.constraints import  check_object_creation, \
-    CONTAINER_LISTING_LIMIT, MAX_FILE_SIZE
+    CONTAINER_LISTING_LIMIT, MAX_FILE_SIZE,check_metadata
 from swift.common.exceptions import ChunkReadTimeout, \
     ChunkWriteTimeout, ConnectionTimeout, ListingIterNotFound, \
     ListingIterNotAuthorized, ListingIterError,SloSegmentError
@@ -775,3 +775,35 @@ class ObjectController(Controller):
                
         return resp
     
+    @public
+    @delay_denial
+    def POST(self, req):
+        """HTTP POST request handler."""
+           
+        error_response = check_metadata(req, 'object')
+        if error_response:
+            return error_response
+        
+        container_partition, containers,_ = self.container_info(self.account_name, self.container_name,
+                account_autocreate=self.app.account_autocreate)
+            
+        if not containers:
+            return HTTPNotFound(request=req)
+        
+        partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
+        
+        req.headers['X-Timestamp'] = normalize_timestamp(time.time())
+        
+        headers = []
+        for container in containers:
+            nheaders = dict(req.headers.iteritems())
+            nheaders['Connection'] = 'close'
+            nheaders['X-Container-Host'] = '%(ip)s:%(port)s' % container
+            nheaders['X-Container-Partition'] = container_partition
+            nheaders['X-Container-Device'] = container['device']
+            
+            headers.append(nheaders)
+        resp = self.make_requests(req, self.app.object_ring, partition,
+                                  'POST', req.path_info, headers)
+        return resp
+        
