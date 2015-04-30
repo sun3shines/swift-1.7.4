@@ -109,7 +109,7 @@ class TempAuth(object):
 
         if self.allow_overrides and env.get('swift.authorize_override', False):
             return self.app(env, start_response)
-        
+
         if env.get('PATH_INFO', '').startswith(self.auth_prefix):
             return self.handle(env, start_response)
         

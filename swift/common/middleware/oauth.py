@@ -84,7 +84,9 @@ class OAuth(object):
                 if isinstance(user_info['owner'],dict) and user_info['owner'].has_key('email') and user_info['owner'].get('email'):
                     tenant = 'AUTH_' + user_info['owner']['email'].replace('@','').replace('.','')
                 else:
-                    tenant = 'AUTH_' + user_info['owner'].replace('@','').replace('.','')
+                    # tenant = 'AUTH_' + user_info['owner'].replace('@','').replace('.','')
+                    self.logger.increment('unauthorized')
+                    return HTTPUnauthorized()(env, start_response)
                     
                 if account != tenant:
                     self.logger.increment('unauthorized')
