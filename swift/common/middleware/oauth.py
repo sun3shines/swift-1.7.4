@@ -31,36 +31,9 @@ from swift.common.middleware.acl import clean_acl, parse_acl, referrer_allowed
 from swift.common.utils import cache_from_env, get_logger, get_remote_client, \
     split_path, TRUE_VALUES
 from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
+from swift.common.oauth.request_validate_token import validateToken
 
-
-class TempAuth(object):
-    """
-    Test authentication and authorization system.
-
-    Add to your pipeline in proxy-server.conf, such as::
-
-        [pipeline:main]
-        pipeline = catch_errors cache tempauth proxy-server
-
-    Set account auto creation to true in proxy-server.conf::
-
-        [app:proxy-server]
-        account_autocreate = true
-
-    And add a tempauth filter section, such as::
-
-        [filter:tempauth]
-        use = egg:swift#tempauth
-        user_admin_admin = admin .admin .reseller_admin
-        user_test_tester = testing .admin
-        user_test2_tester2 = testing2 .admin
-        user_test_tester3 = testing3
-
-    See the proxy-server.conf-sample for more information.
-
-    :param app: The next WSGI app in the pipeline
-    :param conf: The dict of configuration values
-    """
+class OAuth(object):
 
     def __init__(self, app, conf):
         self.app = app
@@ -107,15 +80,11 @@ class TempAuth(object):
 
     def __call__(self, env, start_response):
 
-        if self.allow_overrides and env.get('swift.authorize_override', False):
-            return self.app(env, start_response)
-        
-        if env.get('PATH_INFO', '').startswith(self.auth_prefix):
-            return self.handle(env, start_response)
-        
         token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
-        if token and token.startswith(self.reseller_prefix):
+        if token :
             # Note: Empty reseller_prefix will match all tokens.
+            user_info = validateToken(token)
+            #
             groups = self.get_groups(env, token)
             if groups:
                 env['REMOTE_USER'] = groups
@@ -124,6 +93,7 @@ class TempAuth(object):
                 # to also log the authenticated user.
                 env['HTTP_X_AUTH_TOKEN'] = \
                     '%s,%s' % (user, token)
+                    
                 return self.app(env, start_response)
             else:
                
@@ -235,29 +205,7 @@ class TempAuth(object):
         return req.response
 
     def handle_get_token(self, req):
-        """
-        Handles the various `request for token and service end point(s)` calls.
-        There are various formats to support the various auth servers in the
-        past. Examples::
 
-            GET <auth-prefix>/v1/<act>/auth
-                X-Auth-User: <act>:<usr>  or  X-Storage-User: <usr>
-                X-Auth-Key: <key>         or  X-Storage-Pass: <key>
-            GET <auth-prefix>/auth
-                X-Auth-User: <act>:<usr>  or  X-Storage-User: <act>:<usr>
-                X-Auth-Key: <key>         or  X-Storage-Pass: <key>
-            GET <auth-prefix>/v1.0
-                X-Auth-User: <act>:<usr>  or  X-Storage-User: <act>:<usr>
-                X-Auth-Key: <key>         or  X-Storage-Pass: <key>
-
-        On successful authentication, the response will have X-Auth-Token and
-        X-Storage-Token set to the token to use with Swift and X-Storage-URL
-        set to the URL to the default Swift cluster to use.
-
-        :param req: The webob.Request to process.
-        :returns: webob.Response, 2xx on success with data set as explained
-                  above.
-        """
         # Validate the request info
         try:
             pathsegs = split_path(req.path_info, minsegs=1, maxsegs=3,
@@ -296,6 +244,8 @@ class TempAuth(object):
         if not all((account, user, key)):
             self.logger.increment('token_denied')
             return HTTPUnauthorized(request=req)
+        
+        
         # Authenticate user
         account_user = account + ':' + user
         if account_user not in self.users:
@@ -304,6 +254,7 @@ class TempAuth(object):
         if self.users[account_user]['key'] != key:
             self.logger.increment('token_denied')
             return HTTPUnauthorized(request=req)
+        
         # Get memcache client
         memcache_client = cache_from_env(req.environ)
         if not memcache_client:
@@ -321,6 +272,8 @@ class TempAuth(object):
                 if expires > time():
                     token = candidate_token
         # Create a new token if one didn't exist
+        
+        
         if not token:
             # Generate new token
             token = '%stk%s' % (self.reseller_prefix, uuid4().hex)
@@ -334,13 +287,18 @@ class TempAuth(object):
             groups = ','.join(groups)
             # Save token
             memcache_token_key = '%s/token/%s' % (self.reseller_prefix, token)
+            
             memcache_client.set(memcache_token_key, (expires, groups),
                                 timeout=float(expires - time()))
+            
+            
             # Record the token with the user info for future use.
             memcache_user_key = \
                 '%s/user/%s' % (self.reseller_prefix, account_user)
             memcache_client.set(memcache_user_key, token,
                                 timeout=float(expires - time()))
+            
+            
         return Response(request=req,
             headers={'x-auth-token': token, 'x-storage-token': token,
                      'x-storage-url': self.users[account_user]['url']})
@@ -352,5 +310,5 @@ def filter_factory(global_conf, **local_conf):
     conf.update(local_conf)
 
     def auth_filter(app):
-        return TempAuth(app, conf)
+        return OAuth(app, conf)
     return auth_filter

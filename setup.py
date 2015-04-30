@@ -87,7 +87,7 @@ setup(
             'catch_errors=swift.common.middleware.catch_errors:filter_factory',
             'domain_remap=swift.common.middleware.domain_remap:filter_factory',
             'staticweb=swift.common.middleware.staticweb:filter_factory',
-            'tempauth=swift.common.middleware.tempauth:filter_factory',
+            'oauth=swift.common.middleware.oauth:filter_factory',
             'keystoneauth=swift.common.middleware.keystoneauth:filter_factory',
             'recon=swift.common.middleware.recon:filter_factory',
             'tempurl=swift.common.middleware.tempurl:filter_factory',

@@ -16,7 +16,7 @@ ratelimit = swift.common.middleware.ratelimit:filter_factory
 memcache = swift.common.middleware.memcache:filter_factory
 staticweb = swift.common.middleware.staticweb:filter_factory
 domain_remap = swift.common.middleware.domain_remap:filter_factory
-tempauth = swift.common.middleware.tempauth:filter_factory
+oauth = swift.common.middleware.oauth:filter_factory
 keystoneauth = swift.common.middleware.keystoneauth:filter_factory
 proxy_logging = swift.common.middleware.proxy_logging:filter_factory
 
