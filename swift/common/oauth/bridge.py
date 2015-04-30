@@ -24,4 +24,6 @@ class bridgeUtil(object):
 
     def verify_user(self, url='', input = {}):
         recv = self.client.http_post(url,443,input,30,True)
+        if not recv:
+            return None
         return json.loads(recv)
