@@ -10,6 +10,7 @@ class bridgeUtil(object):
     def __init__(self):
         self.client = NetUtil()
 
+    '''
     def get_client_access_token(self,url='', input = {}):
         recv = self.client.http_post(url,443,input,30,True)
         return json.loads(recv)
@@ -22,8 +23,10 @@ class bridgeUtil(object):
         recv = self.client.http_post(url,443,input,30,True)
         return json.loads(recv)
 
-    def verify_user(self, url='', input = {}):
-        recv = self.client.http_post(url,443,input,30,True)
+    '''
+        
+    def verify_user(self, url='', port = 443, input = {}):
+        recv = self.client.http_post(url,port,input,30,True)
         if not recv:
             return None
         return json.loads(recv)

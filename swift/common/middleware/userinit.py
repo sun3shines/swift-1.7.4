@@ -170,7 +170,7 @@ class Userinit(object):
                     
     def handle_normal_metadata(self,req,rdatas):
         
-        new_headers = {'X-Versions-Location': 'versions'}
+        new_headers = {'X-Versions-Location': 'normal_versions'}
         new_path,resp=  self.handle_new_req(req, '/normal', 'POST',new_headers)
         if resp.status_int // 100 == 2:
             rdatas['success_count'] = rdatas['success_count'] + 1

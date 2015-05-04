@@ -20,7 +20,7 @@ class NetUtil:
         if ''!=o.query:
             query_str=query_str+'?'+o.query
 
-        if is_https:
+        if is_https and url.startswith('https'):
             conn=httplib.HTTPSConnection(domain,port)
         else:
             conn=httplib.HTTPConnection(domain,port,timeout)
@@ -49,7 +49,7 @@ class NetUtil:
         if ''!=o.query:
             query_str=query_str+'?'+o.query
 
-        if is_https:
+        if is_https and url.startswith('https'):
             conn=httplib.HTTPSConnection(domain,port)
         else:
             conn=httplib.HTTPConnection(domain,port,timeout)     

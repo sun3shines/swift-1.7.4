@@ -60,6 +60,7 @@ class OAuth(object):
         self.secret = conf.get('secret', '123456').strip()
         self.oauth_host = conf.get('oauth_host', 'https://124.16.141.142').strip()
         self.oauth_url = self.oauth_host+'/api/token-validation'
+        self.oauth_port = int(conf.get('oauth_port', '443').strip())
         
     def __call__(self, env, start_response):
 
@@ -114,11 +115,11 @@ class OAuth(object):
         verify_param['secret'] = self.secret
         verify_param['access_token'] = token
         url = self.oauth_url
-        
+        port = int(self.oauth_port)
         # result = {u'status': u'valid', u'scopes': [u'user'],
         #           u'ownerType': u'client', u'owner': u'hnuclient1'}
     
-        result = client.verify_user(url, verify_param)
+        result = client.verify_user(url, port,verify_param)
         return result
     
     def get_cache_user_info(self, env, token):

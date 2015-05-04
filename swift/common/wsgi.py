@@ -14,6 +14,9 @@
 # limitations under the License.
 
 """WSGI tools for use with swift."""
+import sys
+reload(sys)
+sys.setdefaultencoding( "utf-8" )
 
 import errno
 import os
