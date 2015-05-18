@@ -52,7 +52,7 @@ utf8_encoder = codecs.getencoder('utf-8')
 
 from swift.common.exceptions import LockTimeout, MessageTimeout
 from swift.common.path_utils import path_std
-
+from urlparse import parse_qs
 # logging doesn't import patched as cleanly as one would like
 from logging.handlers import SysLogHandler
 import logging
@@ -1430,4 +1430,8 @@ def cache_from_env(env):
     :returns: swift.common.memcached.MemcacheRing from environment
     """
     return item_from_env(env, 'swift.cache')
+
+def qsparam(qs):
+    return dict([(k,v[0]) for k,v in parse_qs(qs).items()])
+
 

@@ -20,7 +20,7 @@ from webob.exc import HTTPServerError
 import uuid
 
 from swift.common.utils import get_logger
-
+from swift.common.apis.api_quota import *
 
 class ApiMiddleware(object):
 
@@ -29,7 +29,13 @@ class ApiMiddleware(object):
         self.logger = get_logger(conf, log_route='catch-errors')
 
     def __call__(self, env, start_response):
-
+        import pdb;pdb.set_trace()
+        if is_get_quota(env):
+            get_quota_env(env)
+            
+        elif is_set_quota(env):
+            set_quota_env(env)
+            
         return self.app(env, start_response)
 
 def filter_factory(global_conf, **local_conf):
