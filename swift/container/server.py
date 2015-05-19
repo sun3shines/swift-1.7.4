@@ -332,16 +332,15 @@ class ContainerController(object):
                                   content_type='text/plain', request=req)
             
         req.accept = out_content_type = 'application/json'
+        recursive = req.headers.get('x-recursive')
         
-        container_list = broker.list_objects_iter(limit, marker, end_marker,
-                                                  prefix, delimiter, path)
-        
-        data = []
-        for (name, create_at,size, etag,xftype) in container_list:    
-            data.append({'bytes': size,'md5': etag,'name': name,'modificationTime':str(create_at),
-                         'xftype':xftype})
-    
-        container_list = json.dumps(data)
+        if limit or marker or end_marker or prefix or delimiter or path:
+            container_list_data = broker.prefix_list_objects_iter(limit, marker, end_marker,
+                                                             prefix, delimiter, path)
+        else:
+            container_list_data = broker.list_objects_iter(recursive)
+            
+        container_list = json.dumps(container_list_data)
         
         if not container_list:
             return HTTPNoContent(request=req)

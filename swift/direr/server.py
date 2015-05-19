@@ -366,7 +366,6 @@ class DirerController(object):
                 
         return HTTPCreated(request=req)
     
-    
     @public
     def COPY(self, req):
         
@@ -484,7 +483,6 @@ class DirerController(object):
     
     @public
     def GET(self, req):
-        
         try:
             drive, part, account, container, direr = split_path(
                 unquote(req.path), 4, 5, True)
@@ -514,23 +512,12 @@ class DirerController(object):
                                   content_type='text/plain', request=req)
             
         out_content_type = 'application/json'
-        container_list = broker.list_objects_iter()
-        if out_content_type == 'application/json':
-            data = []
-            for (name, create_at,size, etag,xftype) in container_list:
-                
-                data.append({'bytes': size,
-                             'hash': etag,
-                            'name': name,
-                            'modificationTime':str(create_at),
-                            'xftype':xftype})
-                
-            container_list = json.dumps(data)
-       
-        else:
-            if not container_list:
-                return HTTPNoContent(request=req )
-            container_list = '\n'.join(r[0] for r in container_list) + '\n'
+        
+        recursive = req.headers.get('x-recursive')
+        
+        container_list_data = broker.list_objects_iter(recursive)
+        
+        container_list = json.dumps(container_list_data)
             
         ret = Response(body=container_list, request=req )
         ret.content_type = out_content_type

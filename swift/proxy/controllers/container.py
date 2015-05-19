@@ -77,6 +77,17 @@ class ContainerController(Controller):
 
     @public
     @delay_denial
+    def LISTDIR(self, req):
+        """Handler for HTTP GET requests."""
+        old_method = req.method
+        req.method = 'GET'
+        req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
+        resp = self.GETorHEAD(req)
+        req.method = old_method
+        return resp
+    
+    @public
+    @delay_denial
     def HEAD(self, req):
         """Handler for HTTP HEAD requests."""
         return self.GETorHEAD(req)

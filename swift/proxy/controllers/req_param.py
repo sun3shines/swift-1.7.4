@@ -6,7 +6,7 @@ def check_path_parts(path_parts):
     ftype = path_parts.get('ftype')
     op = path_parts.get('op')
     if 'd' == ftype:
-        if path_parts.get('op') not in ['MKDIRS','DELETE','MOVE','COPY','LIST','RENAME','RESET']:
+        if path_parts.get('op') not in ['MKDIRS','DELETE','MOVE','COPY','LIST','RENAME','RESET','LISTDIR']:
             return False
     
     if 'l' == ftype:

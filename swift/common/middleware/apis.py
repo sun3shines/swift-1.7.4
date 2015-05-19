@@ -30,7 +30,6 @@ class ApiMiddleware(object):
         self.logger = get_logger(conf, log_route='catch-errors')
 
     def __call__(self, env, start_response):
-        import pdb;pdb.set_trace()
         if is_get_quota(env):
             get_quota_env(env)
             

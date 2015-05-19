@@ -175,7 +175,6 @@ class Application(object):
         return req
 
     def handle_request(self, req):
-        
         try:
             self.logger.set_statsd_prefix('proxy-server')
             if req.content_length and req.content_length < 0:

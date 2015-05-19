@@ -203,7 +203,13 @@ class DirerController(Controller):
         resp = self.GETorHEAD(req)
         req.method = old_method
         return resp
-    
+
+    @public
+    @delay_denial
+    def LISTDIR(self,req):
+        req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
+        return self.LIST(req)
+        
     @public
     def COPY(self,req):    
         
