@@ -332,9 +332,8 @@ class ContainerController(object):
                                   content_type='text/plain', request=req)
             
         req.accept = out_content_type = 'application/json'
-        recursive = req.headers.get('x-recursive')
-        
-        if limit or marker or end_marker or prefix or delimiter or path:
+        recursive = req.headers.get('x-recursive') or req.GET.get('recursive')
+        if marker or end_marker or prefix or delimiter or path:
             container_list_data = broker.prefix_list_objects_iter(limit, marker, end_marker,
                                                              prefix, delimiter, path)
         else:

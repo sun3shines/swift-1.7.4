@@ -464,11 +464,11 @@ class DirerController(object):
                     (name, time,size, etag,xftype,path,uuid,ftype) = objdata
                     data.append({'bytes': size,'hash': etag,'name': name,
                                  'path':path,'uuid':uuid,'ftype':ftype,
-                                 'time':time,'xftype':xftype})
+                                 'time':time})
                 else:
-                    (name, time,size, etag,xftype) = objdata
+                    (name, time,size, etag,ftype) = objdata
                     data.append({'bytes': size,'hash': etag,'name': name,
-                                 'time':time,'xftype':xftype})
+                                 'time':time})
             container_list = json.dumps(data)
        
         else:
@@ -513,7 +513,7 @@ class DirerController(object):
             
         out_content_type = 'application/json'
         
-        recursive = req.headers.get('x-recursive')
+        recursive = req.headers.get('x-recursive') or req.GET.get('recursive')
         
         container_list_data = broker.list_objects_iter(recursive)
         
