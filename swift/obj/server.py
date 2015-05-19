@@ -480,6 +480,7 @@ class ObjectController(object):
         user_file.metadata['recycle_uuid'] = recycle_uuid
         user_file.metadata['ftype'] = 'f'
         user_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
+        user_file.metadata['X-File-Type'] = 'f'
         
         with user_file.mkstemp() as (fd, tmppath):
             user_file.put(fd, tmppath,user_file.metadata, extension='.meta')

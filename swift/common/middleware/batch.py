@@ -360,11 +360,77 @@ class Batch(object):
             
         return HTTPBadRequest('Invalid batch delete.')
     
+    def batch_reset(self,req):
+
+        try:
+            version, account, _junk = split_path(req.path,2, 3, True)
+        except ValueError:
+            return HTTPNotFound(request=req)
+
+        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        if not out_content_type:
+            return HTTPNotAcceptable(request=req)
+        
+        failed_files = []
+        success_count = not_found_count = 0
+        failed_file_response_type = HTTPBadRequest
+
+        batchparams = json.loads(req.body)
+        for param in batchparams.get('list'):
+            
+            ppath = param.get('path').strip()
+            pftype = param.get('ftype').strip()
+            
+            new_env = req.environ.copy()    
+            del(new_env['wsgi.input'])
+            new_env['CONTENT_LENGTH'] = 0
+            new_path = '/' + version + '/' + account+ ppath
+            if not check_utf8(new_path):
+                failed_files.append([quote(new_path),
+                                     HTTPPreconditionFailed().status])
+                continue
+        
+            new_env['PATH_INFO'] = new_path
+            new_env['QUERY_STRING'] = new_env['QUERY_STRING'] + '&ftype=%s' % (pftype)
+            new_req = Request.blank(new_path, new_env)
+            new_req.GET['ftype'] = pftype
+            
+            
+            resp = new_req.get_response(self.app)
+            if resp.status_int // 100 == 2:
+                success_count += 1
+            elif resp.status_int == HTTP_NOT_FOUND:
+                not_found_count += 1
+            elif resp.status_int == HTTP_UNAUTHORIZED:
+                return HTTPUnauthorized(request=req)
+            else:
+                if resp.status_int // 100 == 5:
+                    failed_file_response_type = HTTPBadGateway
+                failed_files.append([quote(new_path), resp.status])
+
+        resp_body = get_response_body(
+            out_content_type,
+            {'Number Reseted': success_count,
+             'Number Not Found': not_found_count},
+            failed_files)
+        
+        if (success_count or not_found_count) and not failed_files:
+            return HTTPOk(resp_body, content_type=out_content_type)
+        
+        if failed_files:
+            return failed_file_response_type(
+                resp_body, content_type=out_content_type)
+            
+        return HTTPBadRequest('Invalid batch delete.')
+    
     def handle_batch(self, req):
         
         
         if 'DELETE' == req.GET.get('op'):
             return self.batch_delete(req)
+        
+        if 'RESET' == req.GET.get('op'):
+            return self.batch_reset(req)
         
         if 'MOVE' == req.GET.get('op'):
             return self.batch_move(req)

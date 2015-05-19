@@ -230,6 +230,8 @@ class DirerController(object):
         user_broker.metadata['ftype'] = 'd'
         user_broker.metadata[X_CONTENT_LENGTH] = '0'
         user_broker.metadata[X_ETAG] = 'dir'
+        user_broker.metadata['X-Timestamp'] = req.headers['x-timestamp']
+        user_broker.metadata['X-File-Type'] = 'd'
         
         user_broker.update_metadata(user_broker.metadata)
                 
