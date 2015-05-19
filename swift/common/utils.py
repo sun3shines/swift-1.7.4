@@ -1434,4 +1434,10 @@ def cache_from_env(env):
 def qsparam(qs):
     return dict([(k,v[0]) for k,v in parse_qs(qs).items()])
 
-
+def newparamqs(param):
+    qs = ''
+    qslist = []
+    for k,v in param.items():
+        qslist.append(k+'='+v)
+        
+    return '&'.join(qslist)

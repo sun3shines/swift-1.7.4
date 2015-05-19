@@ -337,8 +337,9 @@ class ContainerController(object):
                                                   prefix, delimiter, path)
         
         data = []
-        for (name, create_at,size, etag) in container_list:    
-            data.append({ 'bytes': size,'md5': etag,'name': name,'modificationTime':str(create_at)})
+        for (name, create_at,size, etag,xftype) in container_list:    
+            data.append({'bytes': size,'md5': etag,'name': name,'modificationTime':str(create_at),
+                         'xftype':xftype})
     
         container_list = json.dumps(data)
         

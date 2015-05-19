@@ -21,6 +21,7 @@ import uuid
 
 from swift.common.utils import get_logger
 from swift.common.apis.api_quota import *
+from swift.common.apis.api_dir import *
 
 class ApiMiddleware(object):
 
@@ -35,6 +36,27 @@ class ApiMiddleware(object):
             
         elif is_set_quota(env):
             set_quota_env(env)
+            
+        elif is_dir_create(env):
+            dir_creaet_env(env)
+            
+        elif is_file_create(env):
+            file_creaet_env(env)
+            
+        elif is_file_open(env):
+            file_open_env(env)
+            
+        elif is_link_create(env):
+            link_creaet_env(env)
+            
+        elif is_file_rename(env):
+            file_rename_env(env)
+            
+        elif is_file_attr(env):
+            file_attr_env(env)
+            
+        elif is_file_permission(env):
+            file_permission_env(env)
             
         return self.app(env, start_response)
 

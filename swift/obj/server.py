@@ -282,6 +282,7 @@ class ObjectController(object):
                 'ETag': etag,
                 'Content-Length': str(os.fstat(fd).st_size),
                 'X-Timestamp': request.headers['x-timestamp'],
+                'X-File-Type':'f',
             }
             
             for header_key in self.allowed_headers:

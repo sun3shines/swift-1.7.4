@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 from swift.common.utils import split_path,qsparam
 
 def is_get_quota(env):

@@ -460,11 +460,14 @@ class DirerController(object):
             data = []
             for objdata in container_list:
                 if 'recycle' == container:
-                    (name, size, etag,path,uuid,ftype) = objdata
-                    data.append({'bytes': size,'hash': etag,'name': name,'path':path,'uuid':uuid,'ftype':ftype})
+                    (name, time,size, etag,xftype,path,uuid,ftype) = objdata
+                    data.append({'bytes': size,'hash': etag,'name': name,
+                                 'path':path,'uuid':uuid,'ftype':ftype,
+                                 'time':time,'xftype':xftype})
                 else:
-                    (name, size, etag) = objdata
-                    data.append({'bytes': size,'hash': etag,'name': name})
+                    (name, time,size, etag,xftype) = objdata
+                    data.append({'bytes': size,'hash': etag,'name': name,
+                                 'time':time,'xftype':xftype})
             container_list = json.dumps(data)
        
         else:
@@ -512,12 +515,14 @@ class DirerController(object):
         container_list = broker.list_objects_iter()
         if out_content_type == 'application/json':
             data = []
-            for (name, create_at,size, etag) in container_list:
+            for (name, create_at,size, etag,xftype) in container_list:
                 
                 data.append({'bytes': size,
                              'hash': etag,
                             'name': name,
-                            'modificationTime':str(create_at)})
+                            'modificationTime':str(create_at),
+                            'xftype':xftype})
+                
             container_list = json.dumps(data)
        
         else:
