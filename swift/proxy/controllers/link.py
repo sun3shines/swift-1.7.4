@@ -74,6 +74,10 @@ class LinkController(Controller):
     @delay_denial
     def CREATESYMLINK(self, req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'create link'
+            req.environ['fwuser_info']['lock'] = True
+            
         (container_partition, containers,_) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         

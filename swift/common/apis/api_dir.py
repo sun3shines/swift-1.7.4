@@ -15,6 +15,10 @@ def is_dir_create(env):
 
 def dir_creaet_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'create dir'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     param['ftype'] = 'd'
@@ -34,7 +38,11 @@ def is_file_create(env):
     return False
 
 def file_creaet_env(env):
-    
+
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'create file'
+        env['fwuser_info']['lock'] = True
+            
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     param['ftype'] = 'f'
@@ -56,6 +64,10 @@ def is_file_open(env):
 
 def file_open_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'get file'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     param.pop('op')
@@ -76,6 +88,10 @@ def is_link_create(env):
 
 def link_creaet_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'create link'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     param['ftype'] = 'l'
@@ -98,6 +114,10 @@ def is_file_rename(env):
 
 def file_rename_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'rename file'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     if param.has_key('destination'):
@@ -122,6 +142,10 @@ def is_file_attr(env):
 
 def file_attr_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'get file attr'
+        env['fwuser_info']['lock'] = True
+        
     env['REQUEST_METHOD'] = 'META'
     env.pop('QUERY_STRING')
     
@@ -140,6 +164,10 @@ def is_file_permission(env):
 
 def file_permission_env(env):
 
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'set file permission'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)
     if param.has_key('permission'):
@@ -166,6 +194,10 @@ def is_file_versions(env):
 
 def file_versions_env(env):
 
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'get file versions'
+        env['fwuser_info']['lock'] = True
+        
     path = env.get('PATH_INFO')
     vers,account, container,obj = split_path(path,1, 4,True)
     env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(['',vers,account,container+'_versions'])

@@ -713,7 +713,6 @@ class ObjectController(object):
     
     def __call__(self, env, start_response):
         """WSGI Application entry point for the Swift Object Server."""
-
         start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)

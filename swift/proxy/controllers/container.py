@@ -73,12 +73,21 @@ class ContainerController(Controller):
     @delay_denial
     def GET(self, req):
         """Handler for HTTP GET requests."""
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get object list'
+            req.environ['fwuser_info']['lock'] = True
+            
         return self.GETorHEAD(req)
 
     @public
     @delay_denial
     def LISTDIR(self, req):
         """Handler for HTTP GET requests."""
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get object list'
+            req.environ['fwuser_info']['lock'] = True
+            
         old_method = req.method
         req.method = 'GET'
         req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
@@ -89,6 +98,11 @@ class ContainerController(Controller):
     @public
     @delay_denial
     def HEAD(self, req):
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get container attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         """Handler for HTTP HEAD requests."""
         return self.GETorHEAD(req)
 
@@ -96,6 +110,10 @@ class ContainerController(Controller):
     @delay_denial
     def META(self, req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get container attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         """Handler for HTTP META requests."""
         if not self.account_info(self.account_name)[1]:
             return HTTPNotFound(request=req)
@@ -117,6 +135,10 @@ class ContainerController(Controller):
     def PUT(self, req):
         """HTTP PUT request handler."""
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'create container'
+            req.environ['fwuser_info']['lock'] = True
+            
         if len(self.container_name) > MAX_CONTAINER_NAME_LENGTH:
             resp = HTTPBadRequest(request=req)
             resp.body = 'Container name length of %d longer than %d' % \
@@ -149,6 +171,10 @@ class ContainerController(Controller):
     def POST(self, req):
         """HTTP POST request handler."""
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'update container'
+            req.environ['fwuser_info']['lock'] = True
+            
         account_partition, accounts = \
             self.account_info(self.account_name,
                               autocreate=self.app.account_autocreate)
@@ -168,6 +194,11 @@ class ContainerController(Controller):
     @public
     def DELETE(self, req):
         """HTTP DELETE request handler."""
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'delete container'
+            req.environ['fwuser_info']['lock'] = True
+            
         account_partition, accounts = self.account_info(self.account_name)
         if not accounts:
             return HTTPNotFound(request=req)

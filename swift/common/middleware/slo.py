@@ -211,6 +211,12 @@ class StaticLargeObject(object):
         :params req: a swob.Request with an obj in path
         :raises: HttpException on errors
         """
+        
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'merge files'
+            req.environ['fwuser_info']['lock'] = True
+                
         try:
             vrs, account, container, obj = split_path(req.path,1, 4, True)
         except ValueError:
@@ -297,6 +303,11 @@ class StaticLargeObject(object):
         :raises HTTPServerError: on invalid manifest
         :returns: swob.Response on failure, otherwise self.app
         """
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'delete merge files'
+            req.environ['fwuser_info']['lock'] = True
+            
         new_env = req.environ.copy()
         new_env['REQUEST_METHOD'] = 'GET'
         del(new_env['wsgi.input'])

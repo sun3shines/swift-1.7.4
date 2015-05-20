@@ -87,13 +87,6 @@ def delete(conn, sql):
 
         close_all(conn, cu)
 
-def db_values(dbpath):
-    '''查询所有数据...'''
-    
-    fetchall_sql = '''SELECT * FROM operations'''
-    conn = get_conn(dbpath)
-    return fetchall(conn, fetchall_sql)
-
 def db_init(dbpath):
     
     table = 'operations'
@@ -116,6 +109,13 @@ def db_init(dbpath):
                         )'''
     conn = get_conn(dbpath)
     create_table(conn, create_table_sql)
+
+def db_values(dbpath):
+    '''查询所有数据...'''
+    
+    fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations'''
+    conn = get_conn(dbpath)
+    return fetchall(conn, fetchall_sql)
 
 def db_update(dbpath,status='status3',comment='comments3',tx_id ='tx1'):
         

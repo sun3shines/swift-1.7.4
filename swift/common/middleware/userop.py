@@ -36,10 +36,11 @@ class UserOpMiddleware(object):
         if 'swift.trans_id' not in env:
             trans_id = 'tx' + uuid.uuid4().hex
             env['swift.trans_id'] = trans_id
-            
+        
         req = Request(env)
+        req.environ['xxxtrans_id'] = 'aaaaaaaaaaaaaaaaaa'
         vers,account,container,obj = split_path(req.path,1, 4,True)
-               
+                       
         dbpath = '%s/%s.db' % (self.dbdir,account)
         
         if 'GET_OP_HISTORY' == req.GET.get('op'):
@@ -69,17 +70,19 @@ class UserOpMiddleware(object):
             swifttime = str(time.time())
             tx_id =  req.environ.get('swift.trans_id')
             url = req.url
-            
-            
-            db_insert(dbpath, tx_id, path, type,method, tenant, url, swifttime, status='', comment='')
+            qs = req.environ.get('QUERY_STRING','')
+            env['fwuser_info'] = {} 
+            env['fwuser_info']['status'] = ''
+            env['fwuser_info']['comment'] = ''
+            db_insert(dbpath, tx_id, path, type,method, tenant, qs, swifttime, status='', comment='')
         
         resp = self.app(env, start_response)
         
         if 'register' != container:
-            if env.get('user_info'):
-                status = env.get['user_info'].get('status')
-                comment = env['user_info'].get('comment')
-                env['user_info']['lock'] = True
+            if env.get('fwuser_info'):
+                estatus = env.get('fwuser_info').get('status','')
+                comment = env['fwuser_info'].get('comment','')
+                db_update(dbpath, estatus, comment, tx_id)
                 
         return resp
 

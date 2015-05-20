@@ -92,7 +92,11 @@ class Batch(object):
         self.app = app
         
     def batch_delete(self,req):
-
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'batch delete'
+            req.environ['fwuser_info']['lock'] = True
+        
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
@@ -155,6 +159,10 @@ class Batch(object):
         return HTTPBadRequest('Invalid batch delete.')
     
     def batch_copy(self,req):
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'batch copy'
+            req.environ['fwuser_info']['lock'] = True
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
@@ -225,6 +233,9 @@ class Batch(object):
 
     def batch_move(self,req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'batch remove'
+            req.environ['fwuser_info']['lock'] = True
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
@@ -294,6 +305,10 @@ class Batch(object):
     
     def batch_recycle(self,req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'batch recycle'
+            req.environ['fwuser_info']['lock'] = True
+        
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
@@ -362,6 +377,10 @@ class Batch(object):
     
     def batch_reset(self,req):
 
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'batch reset'
+            req.environ['fwuser_info']['lock'] = True
+        
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:

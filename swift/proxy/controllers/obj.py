@@ -340,6 +340,11 @@ class ObjectController(Controller):
     @delay_denial
     def HEAD(self, req):
         """Handler for HTTP HEAD requests."""
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get file attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         return self.GETorHEAD(req)
 
 
@@ -347,12 +352,21 @@ class ObjectController(Controller):
     @delay_denial
     def GET(self, req):
         """Handler for HTTP GET requests."""
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get file content'
+            req.environ['fwuser_info']['lock'] = True
+            
         return self.GETorHEAD(req)
 
     @public
     @delay_denial
     def META(self, req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get file attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         part, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name,self.object_name)
         
         shuffle(nodes)
@@ -400,6 +414,10 @@ class ObjectController(Controller):
     @delay_denial
     def PUT(self, req):
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'create file'
+            req.environ['fwuser_info']['lock'] = True
+            
         """HTTP PUT request handler."""
         
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
@@ -573,6 +591,10 @@ class ObjectController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'delete file'
+            req.environ['fwuser_info']['lock'] = True
+            
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
@@ -639,6 +661,10 @@ class ObjectController(Controller):
     @public
     def COPY(self,req):    
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'copy file'
+            req.environ['fwuser_info']['lock'] = True
+            
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
@@ -680,6 +706,10 @@ class ObjectController(Controller):
     @public
     def MOVE(self,req):    
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'move file'
+            req.environ['fwuser_info']['lock'] = True
+            
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         
@@ -778,6 +808,11 @@ class ObjectController(Controller):
     @public
     @delay_denial
     def POST(self, req):
+        
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'update file attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         """HTTP POST request handler."""
            
         error_response = check_metadata(req, 'object')

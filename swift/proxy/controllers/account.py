@@ -77,6 +77,10 @@ class AccountController(Controller):
     def META(self, req):
         """Handler for HTTP GET/HEAD requests."""
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'get account attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         partition, nodes = self.app.account_ring.get_nodes(self.account_name)
         shuffle(nodes)
         resp = self.META_base(req, _('Account'), partition, nodes,
@@ -130,6 +134,10 @@ class AccountController(Controller):
     def POST(self, req):
         """HTTP POST request handler."""
         
+        if not req.environ['fwuser_info'].get('lock'):
+            req.environ['fwuser_info']['comment'] = 'update account attr'
+            req.environ['fwuser_info']['lock'] = True
+            
         account_partition, accounts = self.app.account_ring.get_nodes(self.account_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),
                    'X-Trans-Id': self.trans_id,

@@ -17,6 +17,10 @@ def is_get_quota(env):
 
 def get_quota_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'quota info'
+        env['fwuser_info']['lock'] = True
+            
     path = env['PATH_INFO']
     env['REQUEST_METHOD'] = 'META'
     env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(path.split('/')[:-1])
@@ -37,6 +41,10 @@ def is_set_quota(env):
 
 def set_quota_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'quota set'
+        env['fwuser_info']['lock'] = True
+        
     path = env['PATH_INFO']
     env['REQUEST_METHOD'] = 'POST'
     env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(path.split('/')[:-1])
@@ -44,6 +52,7 @@ def set_quota_env(env):
     return True
 
 def is_list_recycle(env):
+            
     method = env.get('REQUEST_METHOD')
     path = env.get('PATH_INFO')
     qs = env.get('QUERY_STRING','') 
@@ -57,6 +66,10 @@ def is_list_recycle(env):
 
 def list_recycle_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'list recycle'
+        env['fwuser_info']['lock'] = True
+        
     qs = env.get('QUERY_STRING','') 
     path = env['PATH_INFO']
     vers,account, container,_ = split_path(path,1, 4,True)
@@ -84,6 +97,10 @@ def is_clear_recycle(env):
 
 def clear_recycle_env(env):
     
+    if not env['fwuser_info'].get('lock'):
+        env['fwuser_info']['comment'] = 'clear recycle'
+        env['fwuser_info']['lock'] = True
+            
     qs = env.get('QUERY_STRING','') 
     path = env['PATH_INFO']
     vers,account, _,_ = split_path(path,1, 4,True)
