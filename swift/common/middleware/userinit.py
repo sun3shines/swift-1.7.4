@@ -38,6 +38,7 @@ from swift.common.utils import split_path
 MAX_PATH_LENGTH = MAX_OBJECT_NAME_LENGTH + MAX_CONTAINER_NAME_LENGTH + 2
 
 from swift.proxy.controllers.base import get_account_info
+from swift.common.middleware.userdb import db_init
 
 class CreateContainerError(Exception):
     def __init__(self, msg, status_int, status):
@@ -340,10 +341,11 @@ class Userinit(object):
     @wsgify
     def __call__(self, req):
          
-        container = split_path(req.path, 1, 4, True)[2]
+        _,account,container,_ = split_path(req.path, 1, 4, True)
         if 'register' == container:
-            
             if not self.account_exists(req):
+                dbpath = '/mnt/cloudfs-object/%s.db' % (account)
+                db_init(dbpath)
                 return self.handle_register(req)
             else:
                 return HTTPBadRequest('account user alread exists')

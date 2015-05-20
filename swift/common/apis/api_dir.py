@@ -56,8 +56,11 @@ def is_file_open(env):
 
 def file_open_env(env):
     
-    env.pop('QUERY_STRING')
-    
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)
+    param.pop('op')
+    param['ftype'] = 'f'
+    env['QUERY_STRING'] = newparamqs(param)
     return True
 
 def is_link_create(env):
