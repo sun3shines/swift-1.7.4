@@ -131,7 +131,6 @@ class Userinit(object):
         if new_params:
             new_req.GET.update(new_params)
             
-        
         new_req.GET['op'] = new_method
         
         resp = new_req.get_response(self.app)
@@ -340,7 +339,6 @@ class Userinit(object):
     
     @wsgify
     def __call__(self, req):
-         
         _,account,container,_ = split_path(req.path, 1, 4, True)
         if 'register' == container:
             if not self.account_exists(req):

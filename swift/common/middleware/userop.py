@@ -34,11 +34,12 @@ class UserOpMiddleware(object):
     def __call__(self, env, start_response):
         
         if 'swift.trans_id' not in env:
-            trans_id = 'tx' + uuid.uuid4().hex
-            env['swift.trans_id'] = trans_id
+            tx_id = 'tx'+uuid.uuid4().hex
+            env['swift.trans_id'] = tx_id
+       
         
-        req = Request(env)
-        req.environ['xxxtrans_id'] = 'aaaaaaaaaaaaaaaaaa'
+        new_env = env.copy() 
+        req = Request(new_env)
         vers,account,container,obj = split_path(req.path,1, 4,True)
                        
         dbpath = '%s/%s.db' % (self.dbdir,account)
@@ -51,6 +52,7 @@ class UserOpMiddleware(object):
         elif 'DELETE_HISTORY' == req.GET.get('op'):
             db_delete(dbpath)
             return HTTPNoContent(request=req)(env,start_response)
+        
         
         if 'register' != container:
             path = ''
@@ -75,15 +77,15 @@ class UserOpMiddleware(object):
             env['fwuser_info']['status'] = ''
             env['fwuser_info']['comment'] = ''
             db_insert(dbpath, tx_id, path, type,method, tenant, qs, swifttime, status='', comment='')
-        
+
         resp = self.app(env, start_response)
-        
+
         if 'register' != container:
             if env.get('fwuser_info'):
                 estatus = env.get('fwuser_info').get('status','')
                 comment = env['fwuser_info'].get('comment','')
                 db_update(dbpath, estatus, comment, tx_id)
-                
+          
         return resp
 
 def filter_factory(global_conf, **local_conf):

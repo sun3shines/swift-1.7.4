@@ -48,7 +48,7 @@ from swift.common.http import is_success, is_client_error, HTTP_CONTINUE, \
     HTTP_INTERNAL_SERVER_ERROR, HTTP_SERVICE_UNAVAILABLE,HTTP_OK, \
     HTTP_INSUFFICIENT_STORAGE, HTTPClientDisconnect
 from swift.proxy.controllers.base import Controller, delay_denial
-
+from swift.common.env_utils import *
 
 def segment_listing_iter(listing):
     listing = iter(listing)
@@ -341,9 +341,7 @@ class ObjectController(Controller):
     def HEAD(self, req):
         """Handler for HTTP HEAD requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get file attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get file info')
             
         return self.GETorHEAD(req)
 
@@ -353,9 +351,7 @@ class ObjectController(Controller):
     def GET(self, req):
         """Handler for HTTP GET requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get file content'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get file content')
             
         return self.GETorHEAD(req)
 
@@ -363,9 +359,7 @@ class ObjectController(Controller):
     @delay_denial
     def META(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get file attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get file info')
             
         part, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name,self.object_name)
         
@@ -414,12 +408,8 @@ class ObjectController(Controller):
     @delay_denial
     def PUT(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'create file'
-            req.environ['fwuser_info']['lock'] = True
-            
-        """HTTP PUT request handler."""
-        
+        # env_comment(req.environ, 'create file')
+         
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
@@ -591,9 +581,7 @@ class ObjectController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'delete file'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'delete file')
             
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
@@ -661,9 +649,7 @@ class ObjectController(Controller):
     @public
     def COPY(self,req):    
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'copy file'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'copy file')
             
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
@@ -706,9 +692,7 @@ class ObjectController(Controller):
     @public
     def MOVE(self,req):    
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'move file'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'move file')
             
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
@@ -809,11 +793,7 @@ class ObjectController(Controller):
     @delay_denial
     def POST(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'update file attr'
-            req.environ['fwuser_info']['lock'] = True
-            
-        """HTTP POST request handler."""
+        # env_comment(req.environ, 'update file attr')
            
         error_response = check_metadata(req, 'object')
         if error_response:

@@ -13,17 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# NOTE: swift_conn
-# You'll see swift_conn passed around a few places in this file. This is the
-# source httplib connection of whatever it is attached to.
-#   It is used when early termination of reading from the connection should
-# happen, such as when a range request is satisfied but there's still more the
-# source connection would like to send. To prevent having to read all the data
-# that could be left, the source connection can be .close() and then reads
-# commence to empty out any buffers.
-#   These shenanigans are to ensure all related objects can be garbage
-# collected. We've seen objects hang around forever otherwise.
-
 import time
 from urllib import unquote
 from random import shuffle
@@ -35,7 +24,7 @@ from swift.common.utils import normalize_timestamp, public
 from swift.common.constraints import MAX_CONTAINER_NAME_LENGTH
 from swift.common.http import HTTP_ACCEPTED
 from swift.proxy.controllers.base import Controller, delay_denial
-
+from swift.common.env_utils import *
 
 class ContainerController(Controller):
     """WSGI controller for container requests"""
@@ -72,10 +61,8 @@ class ContainerController(Controller):
     @public
     @delay_denial
     def GET(self, req):
-        """Handler for HTTP GET requests."""
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get object list'
-            req.environ['fwuser_info']['lock'] = True
+        
+        # env_comment(req.environ, 'get container content')
             
         return self.GETorHEAD(req)
 
@@ -84,9 +71,7 @@ class ContainerController(Controller):
     def LISTDIR(self, req):
         """Handler for HTTP GET requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get object list'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get container content')
             
         old_method = req.method
         req.method = 'GET'
@@ -99,20 +84,15 @@ class ContainerController(Controller):
     @delay_denial
     def HEAD(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get container attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get container info')
             
-        """Handler for HTTP HEAD requests."""
         return self.GETorHEAD(req)
 
     @public
     @delay_denial
     def META(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get container attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get container info')
             
         """Handler for HTTP META requests."""
         if not self.account_info(self.account_name)[1]:
@@ -135,9 +115,7 @@ class ContainerController(Controller):
     def PUT(self, req):
         """HTTP PUT request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'create container'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'create container')
             
         if len(self.container_name) > MAX_CONTAINER_NAME_LENGTH:
             resp = HTTPBadRequest(request=req)
@@ -171,9 +149,7 @@ class ContainerController(Controller):
     def POST(self, req):
         """HTTP POST request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'update container'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'update container')
             
         account_partition, accounts = \
             self.account_info(self.account_name,
@@ -195,9 +171,7 @@ class ContainerController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'delete container'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'delete container')
             
         account_partition, accounts = self.account_info(self.account_name)
         if not accounts:

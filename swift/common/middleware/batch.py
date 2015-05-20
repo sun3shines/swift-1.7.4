@@ -33,7 +33,7 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
 from swift.common.constraints import MAX_OBJECT_NAME_LENGTH, \
     MAX_CONTAINER_NAME_LENGTH
 
-
+from swift.common.env_utils import *
 from swift.common.utils import split_path
 
 MAX_PATH_LENGTH = MAX_OBJECT_NAME_LENGTH + MAX_CONTAINER_NAME_LENGTH + 2
@@ -93,9 +93,7 @@ class Batch(object):
         
     def batch_delete(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'batch delete'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'batch delete')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
@@ -160,9 +158,7 @@ class Batch(object):
     
     def batch_copy(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'batch copy'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'batch copy')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
@@ -233,9 +229,7 @@ class Batch(object):
 
     def batch_move(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'batch remove'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'batch copy')
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
@@ -305,9 +299,7 @@ class Batch(object):
     
     def batch_recycle(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'batch recycle'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'batch recycle')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
@@ -377,9 +369,7 @@ class Batch(object):
     
     def batch_reset(self,req):
 
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'batch reset'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'batch reset')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)

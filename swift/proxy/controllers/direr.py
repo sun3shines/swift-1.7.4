@@ -36,6 +36,7 @@ from swift.common.constraints import  MAX_CONTAINER_NAME_LENGTH
 from swift.common.http import HTTP_ACCEPTED
 from swift.proxy.controllers.base import Controller, delay_denial
 
+from swift.common.env_utils import *
 
 class DirerController(Controller):
     
@@ -67,10 +68,8 @@ class DirerController(Controller):
     @public
     @delay_denial
     def GET(self, req):
-        """Handler for HTTP GET requests."""
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get file list'
-            req.environ['fwuser_info']['lock'] = True
+        
+        # env_comment(req.environ, 'get dir content')
             
         return self.GETorHEAD(req)
 
@@ -79,18 +78,14 @@ class DirerController(Controller):
     def HEAD(self, req):
         """Handler for HTTP HEAD requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get dir attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get dir info')
             
         return self.GETorHEAD(req)
 
     @public
     def PUT(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'create dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'create dir')
             
         (container_partition, containers,_) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
@@ -123,10 +118,8 @@ class DirerController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'delete dir'
-            req.environ['fwuser_info']['lock'] = True
-            
+        # env_comment(req.environ, 'delete dir')
+        
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
@@ -169,9 +162,7 @@ class DirerController(Controller):
     def RESET(self, req):
         """HTTP DELETE request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'reset dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'reset dir')
             
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
@@ -213,20 +204,16 @@ class DirerController(Controller):
 
     @public
     def MKDIRS(self,req):
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'create dir'
-            req.environ['fwuser_info']['lock'] = True
+        
+        # env_comment(req.environ, 'create dir')
             
         return self.PUT(req)
     
     @public
     @delay_denial
     def LIST(self, req):
-        """Handler for HTTP GET requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'list dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get dir content')
             
         old_method = req.method
         req.method = 'GET'
@@ -238,18 +225,15 @@ class DirerController(Controller):
     @delay_denial
     def LISTDIR(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'list dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(env, 'get dir content')
+        
         req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
         return self.LIST(req)
         
     @public
     def COPY(self,req):    
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'copy dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'copy dir')
             
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
@@ -292,9 +276,7 @@ class DirerController(Controller):
     @public
     def MOVE(self,req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'move dir'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'move dir')
             
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
@@ -329,9 +311,8 @@ class DirerController(Controller):
     
     @public
     def RENAME(self,req):
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'rename dir'
-            req.environ['fwuser_info']['lock'] = True
+        
+        # env_comment(req.environ, 'rename dir')
             
         return self.MOVE(req)
     

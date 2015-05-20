@@ -36,6 +36,7 @@ from swift.common.constraints import MAX_ACCOUNT_NAME_LENGTH
 from swift.common.http import is_success, HTTP_NOT_FOUND
 from swift.proxy.controllers.base import Controller
 
+from swift.common.env_utils import *
 
 class AccountController(Controller):
     """WSGI controller for account requests"""
@@ -77,9 +78,7 @@ class AccountController(Controller):
     def META(self, req):
         """Handler for HTTP GET/HEAD requests."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'get account attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'get account attr')
             
         partition, nodes = self.app.account_ring.get_nodes(self.account_name)
         shuffle(nodes)
@@ -134,9 +133,7 @@ class AccountController(Controller):
     def POST(self, req):
         """HTTP POST request handler."""
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'update account attr'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'update account attr')
             
         account_partition, accounts = self.app.account_ring.get_nodes(self.account_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),

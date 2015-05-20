@@ -58,6 +58,7 @@ from swift.common.http import is_success, is_client_error, HTTP_CONTINUE, \
     HTTP_INSUFFICIENT_STORAGE, HTTPClientDisconnect
 from swift.proxy.controllers.base import Controller, delay_denial
 
+from swift.common.env_utils import *
 
 class LinkController(Controller):
     """WSGI controller for object requests."""
@@ -74,9 +75,7 @@ class LinkController(Controller):
     @delay_denial
     def CREATESYMLINK(self, req):
         
-        if not req.environ['fwuser_info'].get('lock'):
-            req.environ['fwuser_info']['comment'] = 'create link'
-            req.environ['fwuser_info']['lock'] = True
+        # env_comment(req.environ, 'create link')
             
         (container_partition, containers,_) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)

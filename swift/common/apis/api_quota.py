@@ -3,6 +3,8 @@
 from swift.common.utils import split_path,qsparam,newparamqs,json
 from cStringIO import StringIO
 
+from swift.common.env_utils import *
+
 def is_get_quota(env):
     method = env.get('REQUEST_METHOD')
     path = env.get('PATH_INFO')
@@ -17,9 +19,7 @@ def is_get_quota(env):
 
 def get_quota_env(env):
     
-    if not env['fwuser_info'].get('lock'):
-        env['fwuser_info']['comment'] = 'quota info'
-        env['fwuser_info']['lock'] = True
+    env_comment(env, 'quota info')
             
     path = env['PATH_INFO']
     env['REQUEST_METHOD'] = 'META'
@@ -41,9 +41,7 @@ def is_set_quota(env):
 
 def set_quota_env(env):
     
-    if not env['fwuser_info'].get('lock'):
-        env['fwuser_info']['comment'] = 'quota set'
-        env['fwuser_info']['lock'] = True
+    env_comment(env, 'quota set')
         
     path = env['PATH_INFO']
     env['REQUEST_METHOD'] = 'POST'
@@ -66,9 +64,7 @@ def is_list_recycle(env):
 
 def list_recycle_env(env):
     
-    if not env['fwuser_info'].get('lock'):
-        env['fwuser_info']['comment'] = 'list recycle'
-        env['fwuser_info']['lock'] = True
+    env_comment(env, 'list recycle')
         
     qs = env.get('QUERY_STRING','') 
     path = env['PATH_INFO']
@@ -97,9 +93,7 @@ def is_clear_recycle(env):
 
 def clear_recycle_env(env):
     
-    if not env['fwuser_info'].get('lock'):
-        env['fwuser_info']['comment'] = 'clear recycle'
-        env['fwuser_info']['lock'] = True
+    env_comment(env, 'clear recycle')
             
     qs = env.get('QUERY_STRING','') 
     path = env['PATH_INFO']
