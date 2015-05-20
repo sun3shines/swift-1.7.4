@@ -15,27 +15,41 @@
 # limitations under the License.
 
 from eventlet import Timeout
-from webob import Request
-from webob.exc import HTTPServerError
+from webob import Request,Response
+from webob.exc import HTTPServerError,HTTPNoContent
 import uuid
 import time
+    
+from swift.common.utils import get_logger,split_path,json
 
-from swift.common.utils import get_logger,split_path
 from swift.common.middleware.userdb import db_insert,db_update,db_delete,db_values
 
 class UserOpMiddleware(object):
 
     def __init__(self, app, conf):
         self.app = app
+        self.dbdir = conf.get('devices', '/mnt/cloudfs-object').strip()
         self.logger = get_logger(conf, log_route='catch-errors')
 
     def __call__(self, env, start_response):
+        
         if 'swift.trans_id' not in env:
             trans_id = 'tx' + uuid.uuid4().hex
             env['swift.trans_id'] = trans_id
             
         req = Request(env)
         vers,account,container,obj = split_path(req.path,1, 4,True)
+               
+        dbpath = '%s/%s.db' % (self.dbdir,account)
+        
+        if 'GET_OP_HISTORY' == req.GET.get('op'):
+            data = db_values(dbpath)
+            op_list = json.dumps(data)
+            return Response(body=op_list, request=req)(env,start_response)
+        
+        elif 'DELETE_HISTORY' == req.GET.get('op'):
+            db_delete(dbpath)
+            return HTTPNoContent(request=req)(env,start_response)
         
         if 'register' != container:
             path = ''
@@ -56,7 +70,7 @@ class UserOpMiddleware(object):
             tx_id =  req.environ.get('swift.trans_id')
             url = req.url
             
-            dbpath = '/mnt/cloudfs-object/%s.db' % (account)
+            
             db_insert(dbpath, tx_id, path, type,method, tenant, url, swifttime, status='', comment='')
         
         resp = self.app(env, start_response)
@@ -66,6 +80,7 @@ class UserOpMiddleware(object):
                 status = env.get['user_info'].get('status')
                 comment = env['user_info'].get('comment')
                 env['user_info']['lock'] = True
+                
         return resp
 
 def filter_factory(global_conf, **local_conf):

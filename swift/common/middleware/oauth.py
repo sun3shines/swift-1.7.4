@@ -116,9 +116,7 @@ class OAuth(object):
         verify_param['access_token'] = token
         url = self.oauth_url
         port = int(self.oauth_port)
-        # result = {u'status': u'valid', u'scopes': [u'user'],
-        #           u'ownerType': u'client', u'owner': u'hnuclient1'}
-    
+        
         result = client.verify_user(url, port,verify_param)
         return result
     

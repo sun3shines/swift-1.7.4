@@ -95,8 +95,6 @@ class DiskLink(object):
         finally:
             self.close()
 
-    
-
 class LinkController(object):
     
     def __init__(self, app,conf):
@@ -104,7 +102,7 @@ class LinkController(object):
         self.app = app
         
         self.logger = get_logger(conf, log_route='object-server')
-        self.devices = conf.get('devices', '/srv/node/')
+        self.devices = conf.get('devices', '/mnt/cloudfs-object')
         self.mount_check = conf.get('mount_check', 'true').lower() in \
             TRUE_VALUES
         self.node_timeout = int(conf.get('node_timeout', 3000))

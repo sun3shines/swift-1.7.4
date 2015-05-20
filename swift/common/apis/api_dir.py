@@ -153,3 +153,27 @@ def file_permission_env(env):
     env['REQUEST_METHOD'] = 'POST'
     return True
 
+def is_file_versions(env):
+    
+    method = env.get('REQUEST_METHOD')
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)
+    
+    if 'GET' == method and 'GETHISTORY' == param.get('op'): 
+        return True
+    
+    return False
+
+def file_versions_env(env):
+
+    path = env.get('PATH_INFO')
+    vers,account, container,obj = split_path(path,1, 4,True)
+    env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(['',vers,account,container+'_versions'])
+    
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)    
+    param.pop('op')
+    param['prefix'] = obj+'/'
+    env['QUERY_STRING'] = newparamqs(param)
+    
+    return True

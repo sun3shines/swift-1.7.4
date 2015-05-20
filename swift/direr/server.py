@@ -53,7 +53,7 @@ class DirerController(object):
 
         self.app = app
         self.logger = get_logger(conf, log_route='container-server')
-        self.root = conf.get('devices', '/srv/node/')
+        self.root = conf.get('devices', '/mnt/cloudfs-object')
         self.mount_check = conf.get('mount_check', 'true').lower() in \
                               TRUE_VALUES
         self.node_timeout = int(conf.get('node_timeout', 3000))

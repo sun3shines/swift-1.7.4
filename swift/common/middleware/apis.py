@@ -63,6 +63,9 @@ class ApiMiddleware(object):
         elif is_clear_recycle(env):
             clear_recycle_env(env)
             
+        elif is_file_versions(env):
+            file_versions_env(env)
+            
         return self.app(env, start_response)
 
 def filter_factory(global_conf, **local_conf):

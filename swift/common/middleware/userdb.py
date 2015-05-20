@@ -58,26 +58,12 @@ def db_save(conn, sql, data):
 def fetchall(conn, sql):
     
     '''查询所有数据'''
+    data = []
     if sql is not None and sql != '':
         cu = get_cursor(conn)
         cu.execute(sql)
-        r = cu.fetchall()
-        if len(r) > 0:
-            for e in range(len(r)):
-                print r[e]
-    
-def fetchone(conn, sql, data):
-    '''查询一条数据'''
-    if sql is not None and sql != '':
-        if data is not None:
-            #Do this instead
-            d = (data,) 
-            cu = get_cursor(conn)
-            cu.execute(sql, d)
-            r = cu.fetchall()
-            if len(r) > 0:
-                for e in range(len(r)):
-                    print r[e]
+        data = cu.fetchall()
+        return data 
         
 
 def update(conn, sql, data):
@@ -106,7 +92,7 @@ def db_values(dbpath):
     
     fetchall_sql = '''SELECT * FROM operations'''
     conn = get_conn(dbpath)
-    fetchall(conn, fetchall_sql)
+    return fetchall(conn, fetchall_sql)
 
 def db_init(dbpath):
     
@@ -161,15 +147,15 @@ def main():
     db_insert(dbpath,'tx1','path2','type3','method4','tenant5','url6','time7','','')
     db_insert(dbpath,'tx2','path5','type7','method4','tenant5','url6','time7','','')
     print 'insert'
-    db_values(dbpath)
+    print db_values(dbpath)
     
     db_update(dbpath,'status3','comment3','tx1')
     print 'update'
-    db_values(dbpath)
+    print db_values(dbpath)
     
     db_delete(dbpath)
     print 'delete'
-    db_values(dbpath)
+    print db_values(dbpath)
 
 if __name__ == '__main__':
     main()

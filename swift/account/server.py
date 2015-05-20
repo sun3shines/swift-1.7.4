@@ -39,13 +39,12 @@ from swift.common.http import HTTPInsufficientStorage
 
 DATADIR = 'accounts'
 
-
 class AccountController(object):
     """WSGI controller for the account server."""
 
     def __init__(self, conf):
         self.logger = get_logger(conf, log_route='account-server')
-        self.root = conf.get('devices', '/srv/node')
+        self.root = conf.get('devices', '/mnt/cloudfs-object')
         self.mount_check = conf.get('mount_check', 'true').lower() in \
                               ('true', 't', '1', 'on', 'yes', 'y')
         
