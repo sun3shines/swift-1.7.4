@@ -2,6 +2,7 @@
 
 from swift.common.utils import split_path,qsparam,newparamqs
 from swift.common.env_utils import *
+from webob import Request,Response
 
 def is_dir_create(env):
     
@@ -193,4 +194,144 @@ def file_versions_env(env):
     param['prefix'] = obj+'/'
     env['QUERY_STRING'] = newparamqs(param)
     
+    return True
+
+def set_comment(env):
+    
+    new_env = env.copy() 
+    req = Request(new_env)
+    vers,account,container,obj = split_path(req.path,1, 4,True)
+    
+    if req.GET.get('op'):
+        method = req.GET.get('op')
+    else:
+        method = req.method
+        
+    if account and container and obj:
+        ftype = req.GET.get('ftype')
+        if req.method == 'PUT' and req.GET.get('multipart-manifest') == 'put':
+            env_comment(env, 'merge files')
+            return True
+        
+        if req.method == 'DELETE' and req.GET.get('multipart-manifest') == 'delete':
+            env_comment(env, 'delete merged file')
+            return True
+        
+        if 'l' == ftype and req.GET.get('') == 'CREATESYMLINK':
+            env_comment(req.environ, 'create link')
+            return True
+        
+        if 'd' == ftype:
+            if 'GET' == method:
+                env_comment(env, 'get dir content')
+                return True
+            if 'HEAD' == method:
+                env_comment(env, 'get dir info')
+                return True
+            if 'PUT' == method:
+                env_comment(env, 'create dir')
+                return True
+            if 'DELETE' == method:
+                env_comment(env, 'delete dir')
+                return True
+            if 'RESET' == method:
+                env_comment(env, 'reset dir')
+                return True
+            if 'MKDIRS' == method:
+                env_comment(env, 'create dir')
+                return True
+            if 'LIST' == method:
+                env_comment(env, 'get dir content')
+                return True
+            if 'LISTDIR' == method:
+                env_comment(env, 'get dir content')
+                return True
+            if 'COPY' == method:
+                env_comment(env, 'copy dir')
+                return True
+            if 'MOVE' == method:
+                env_comment(env, 'move dir')
+                return True
+            if 'RENAME' == method:
+                env_comment(env, 'rename dir')
+                return True
+            
+        if 'HEAD' == method:
+            env_comment(env, 'get file info')
+            return True
+        if 'GET' == method:
+            env_comment(env, 'get file content')
+            return True
+        
+        if 'META' == method:
+            env_comment(env, 'get file info')
+            return True
+        if 'PUT' == method:
+            env_comment(env, 'create file')
+            return True
+        if 'DELETE' == method:
+            env_comment(env, 'delete file')
+            return True
+        if 'COPY' == method:
+            env_comment(env, 'copy file')
+            return True
+        if 'MOVE' == method:
+            env_comment(env, 'move file')
+            return True
+        if 'POST' == method:
+            env_comment(env, 'update file attr')
+            return True
+        
+    if account and container:
+        if 'batch' == container:
+            if 'DELETE' == req.GET.get('op'):
+                env_comment(env, 'batch delete')
+                return True
+            
+            if 'RESET' == req.GET.get('op'):
+                env_comment(env, 'batch reset')
+                return True
+            
+            if 'MOVE' == req.GET.get('op'):
+                env_comment(env, 'batch move')
+                return True
+            
+            if 'COPY' == req.GET.get('op'):
+                env_comment(env, 'batch copy')
+                return True
+            
+            if 'MOVERECYCLE' == req.GET.get('op'):
+                env_comment(env, 'batch move from recycle')
+                return True
+        if 'GET' == method:
+            env_comment(env, 'get container content')
+            return True
+        if 'LISTDIR' == method:
+            env_comment(env, 'get container content')
+            return True
+        if 'HEAD' == method:
+            env_comment(env, 'get container info')
+            return True
+        if 'META' == method:
+            env_comment(env, 'get container info')
+            return True
+        if 'PUT' == method:
+            env_comment(env, 'create container')
+            return True
+        if 'POST' == method:
+            env_comment(env, 'update container')
+            return True
+        if 'DELETE' == method:
+            env_comment(env, 'delete container')
+            return True
+        
+    if account:
+        if 'META' == method:
+            env_comment(env, 'get account attr')
+            return True
+        
+        if 'POST' == method:
+            env_comment(env, 'update account attr')
+            return True
+        
     return True
