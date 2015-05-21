@@ -446,7 +446,6 @@ class Batch(object):
         
         if 'COPY' == req.GET.get('op'):
             return self.batch_copy(req)
-        
         if 'MOVERECYCLE' == req.GET.get('op'):
             return self.batch_recycle(req)
         

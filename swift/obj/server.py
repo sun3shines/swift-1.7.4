@@ -526,8 +526,15 @@ class ObjectController(object):
             return HTTPNotFound()
         
         if not dst_file.is_deleted():
-            return HTTPConflict(request=req)
-                                    
+
+            overwrite = req.headers.get('X-Overwrite','false').lower()
+            if 'true' == overwrite:
+                content_length = dst_file.metadata['Content-Length']
+                dst_file.unlink_data()
+                self.account_update(req, account, content_length, add_flag=False) 
+            else:    
+                return HTTPConflict(request=req)
+                                      
         dst_file.copy(src_file.data_file)
         
         if dst_file.is_deleted():
@@ -576,10 +583,17 @@ class ObjectController(object):
         
         if src_file.is_deleted():
             return HTTPNotFound()
-        
+ 
         if not dst_file.is_deleted():
-            return HTTPConflict(request=req)
-        
+
+            overwrite = req.headers.get('X-Overwrite','false').lower()
+            if 'true' == overwrite:
+                content_length = dst_file.metadata['Content-Length']
+                dst_file.unlink_data()
+                self.account_update(req, account, content_length, add_flag=False) 
+            else:    
+                return HTTPConflict(request=req)
+ 
         if dst_file.fhr_dir_is_deleted():
             if req.headers.get('x-fhr-dir') == 'True':
                 dst_file.create_dir_object(dst_file.fhr_path)

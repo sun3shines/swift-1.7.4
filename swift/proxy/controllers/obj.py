@@ -673,7 +673,7 @@ class ObjectController(Controller):
                         'X-Container-Device': container['device'],
                         'x-copy-dst':req.headers['Destination'],
                         'x-ftype':req.GET['ftype'],
-                        
+                        'x-overwrite':req.GET.get('overwrite','false'),
                         'X-Account-Host': '%(ip)s:%(port)s' % account,
                         'X-Account-Partition': account_partition,
                         'X-Account-Device': account['device'],
@@ -691,7 +691,7 @@ class ObjectController(Controller):
     
     @public
     def MOVE(self,req):    
-        
+    
         # env_comment(req.environ, 'move file')
             
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
@@ -713,6 +713,7 @@ class ObjectController(Controller):
                         'X-Container-Device': container['device'],
                         'x-move-dst':req.headers['Destination'],
                         'x-ftype':req.GET['ftype'],
+                        'x-overwrite':req.GET.get('overwrite','false'),
                         'Connection': 'close'}
                  
             self.transfer_headers(req.headers, nheaders)
