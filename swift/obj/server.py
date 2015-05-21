@@ -652,8 +652,17 @@ class ObjectController(object):
         if src_file.is_deleted():
             return HTTPNotFound()
         
+        #if not dst_file.is_deleted():
+        #    return HTTPConflict(request=req)
         if not dst_file.is_deleted():
-            return HTTPConflict(request=req)
+
+            overwrite = req.headers.get('X-Overwrite','false').lower()
+            if 'true' == overwrite:
+                content_length = dst_file.metadata['Content-Length']
+                dst_file.unlink_data()
+                self.account_update(req, account, content_length, add_flag=False) 
+            else:    
+                return HTTPConflict(request=req)
         
         if dst_file.fhr_dir_is_deleted():
             dst_file.create_dir_object(dst_file.fhr_path)
