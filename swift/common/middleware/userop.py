@@ -36,8 +36,7 @@ class UserOpMiddleware(object):
         if 'swift.trans_id' not in env:
             tx_id = 'tx'+uuid.uuid4().hex
             env['swift.trans_id'] = tx_id
-       
-        
+
         new_env = env.copy() 
         req = Request(new_env)
         vers,account,container,obj = split_path(req.path,1, 4,True)

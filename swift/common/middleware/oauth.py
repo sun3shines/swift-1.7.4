@@ -29,9 +29,9 @@ from webob.exc import HTTPBadRequest, HTTPForbidden, HTTPNotFound, \
 
 from swift.common.middleware.acl import clean_acl, parse_acl, referrer_allowed
 from swift.common.utils import cache_from_env, get_logger, get_remote_client, \
-    split_path, TRUE_VALUES
+    split_path, TRUE_VALUES,json
+    
 from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
-
 from swift.common.oauth.bridge import *
 
 class OAuth(object):
@@ -43,17 +43,9 @@ class OAuth(object):
         
         self.log_headers = conf.get('log_headers', 'f').lower() in TRUE_VALUES
         self.reseller_prefix = conf.get('reseller_prefix', 'AUTH').strip()
-        if self.reseller_prefix and self.reseller_prefix[-1] != '_':
-            self.reseller_prefix += '_'
-        self.logger.set_statsd_prefix('tempauth.%s' % (
-            self.reseller_prefix if self.reseller_prefix else 'NONE',))
-        self.auth_prefix = conf.get('auth_prefix', '/auth/')
-        if not self.auth_prefix:
-            self.auth_prefix = '/auth/'
-        if self.auth_prefix[0] != '/':
-            self.auth_prefix = '/' + self.auth_prefix
-        if self.auth_prefix[-1] != '/':
-            self.auth_prefix += '/'
+        
+        self.auth_prefix = conf.get('auth_prefix', '/oauth/access_token')
+        
         self.token_life = int(conf.get('token_life', 86400))
         
         self.resourcename = conf.get('resourcename', 'SeAgent').strip()
@@ -62,8 +54,17 @@ class OAuth(object):
         self.oauth_url = self.oauth_host+'/api/token-validation'
         self.oauth_port = int(conf.get('oauth_port', '443').strip())
         
+        self.client_id = conf.get('client_id', 'hnuclient1').strip()
+        self.client_secret = conf.get('client_secret', '34ulL811ANtS70Te').strip()
+        self.token_url = '%s/oauth/access_token' % (self.oauth_host)
+        self.grant_type = conf.get('grant_type', 'password').strip()
+        self.scope = conf.get('scope', 'user').strip()
+        
     def __call__(self, env, start_response):
 
+        if env.get('PATH_INFO', '').startswith(self.auth_prefix):
+            return self.handle(env, start_response)
+        
         req = Request(env)
         
         try:
@@ -76,19 +77,23 @@ class OAuth(object):
         token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
         if token :
             
-            user_info = self.get_user_info(env, token)
+            user_info = self.get_cache_user_info(env, token)
             if user_info:
+                
+                '''
                 if 'valid' != user_info.get('status'):
                     self.logger.increment('unauthorized')
                     return HTTPUnauthorized()(env, start_response)
                 
+                
                 if isinstance(user_info['owner'],dict) and user_info['owner'].has_key('email') and user_info['owner'].get('email'):
                     tenant = 'AUTH_' + user_info['owner']['email'].replace('@','').replace('.','')
                 else:
-                    # tenant = 'AUTH_' + user_info['owner'].replace('@','').replace('.','')
                     self.logger.increment('unauthorized')
                     return HTTPUnauthorized()(env, start_response)
-                    
+                '''
+                
+                tenant = 'AUTH_' + user_info.replace('@','').replace('.','')
                 if account != tenant:
                     self.logger.increment('unauthorized')
                     return HTTPUnauthorized()(env, start_response)
@@ -119,7 +124,15 @@ class OAuth(object):
         
         result = client.verify_user(url, port,verify_param)
         return result
-    
+
+    def get_user_info(self, env, token):
+        
+        user_info = None
+        if not user_info:
+            user_info = self.validateToken(token)
+
+        return user_info
+       
     def get_cache_user_info(self, env, token):
         
         user_info = None
@@ -130,10 +143,11 @@ class OAuth(object):
         
         cached_auth_data = memcache_client.get(memcache_token_key)
         if cached_auth_data:
-            expires, user_info = cached_auth_data
+            expires,expires_in, user_info = cached_auth_data
             if expires < time():
                 user_info = None
-
+                
+        '''
         if not user_info:
             user_info = self.validateToken(token)
             expires = time() + self.token_life
@@ -141,17 +155,108 @@ class OAuth(object):
             
             memcache_client.set(memcache_token_key, (expires, user_info),
                                 timeout=float(expires - time()))
-            
+        '''
+                 
         return user_info
 
-    def get_user_info(self, env, token):
+    def handle(self, env, start_response):
         
-        user_info = None
-        if not user_info:
-            user_info = self.validateToken(token)
+        try:
+            req = Request(env)
+            
+            return self.handle_request(req)(env, start_response)
+            
+        except (Exception, Timeout):
+            print "EXCEPTION IN handle: %s: %s" % (format_exc(), env)
+            self.logger.increment('errors')
+            start_response('500 Server Error',
+                           [('Content-Type', 'text/plain')])
+            return ['Internal server error.\n']
+        
+    def handle_request(self, req):
+        
+        req.start_time = time()
+        
+        handler = self.handle_get_token
+        
+        if not handler:
+            self.logger.increment('errors')
+            req.response = HTTPBadRequest(request=req)
+        else:
+            req.response = handler(req)
+        return req.response
+    
 
-        return user_info
-  
+
+    def get_user_accessToken(self,user_email,user_passwd):
+        
+        client = bridgeUtil()
+        user_param = {}
+    
+        url = self.token_url
+    
+        user_param['client_id'] = self.client_id
+        user_param['client_secret'] = self.client_secret
+        user_param['grant_type'] = self.grant_type
+        user_param['scope'] = self.scope
+        user_param['email'] = user_email
+        user_param['password'] = user_passwd
+        
+        result = client.get_user_access_token(url,  self.oauth_port,user_param)
+        
+        return result
+
+    def handle_get_token(self, req):
+        
+        param = json.loads(req.body)
+        user_email = param['email']
+        user_passwd = param['password']
+        
+        if not user_email or not user_passwd:
+            return ['email or password error.\n']
+        
+        account_user = user_email.replace('@','').replace('.','')
+
+        memcache_client = cache_from_env(req.environ)
+        if not memcache_client:
+            raise Exception('Memcache required')
+        
+        token = None
+        # get token by memcache by account_user
+        memcache_user_key = '%s/user/%s' % (self.reseller_prefix, account_user)
+        candidate_token = memcache_client.get(memcache_user_key)
+        if candidate_token:
+            memcache_token_key = '%s/token/%s' % (self.reseller_prefix, candidate_token)
+            cached_auth_data = memcache_client.get(memcache_token_key)
+            if cached_auth_data:
+                expires,expires_in,user_email = cached_auth_data
+                if expires > time():
+                    token = candidate_token
+        
+        if not token:
+            
+            oauth_data = self.get_user_accessToken(user_email,user_passwd)
+            
+            if not oauth_data or not oauth_data.get('access_token'):
+                return HTTPUnauthorized(request=req)
+            
+            token = oauth_data["access_token"]
+            
+            expires_in = int(oauth_data['expires_in'])
+            expires = expires_in + time()
+            
+            cached_auth_data = (expires,expires_in,user_email)
+            # get account_user/tenant by token
+            memcache_token_key = '%s/token/%s' % (self.reseller_prefix, token)
+            memcache_client.set(memcache_token_key, cached_auth_data, timeout=expires_in)
+            
+            # get token by oauth server by account_user
+            memcache_user_key = '%s/user/%s' % (self.reseller_prefix, account_user)
+            memcache_client.set(memcache_user_key, token,timeout=expires_in)
+            
+        oauth_data_list = json.dumps({'access_token':token,'expires':expires})
+        return Response(body=oauth_data_list,request=req)
+        
 def filter_factory(global_conf, **local_conf):
     """Returns a WSGI filter app for use with paste.deploy."""
     conf = global_conf.copy()

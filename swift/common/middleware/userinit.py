@@ -340,6 +340,7 @@ class Userinit(object):
     @wsgify
     def __call__(self, req):
         _,account,container,_ = split_path(req.path, 1, 4, True)
+
         if 'register' == container:
             if not self.account_exists(req):
                 dbpath = '/mnt/cloudfs-object/%s.db' % (account)

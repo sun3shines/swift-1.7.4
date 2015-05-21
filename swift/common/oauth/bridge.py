@@ -19,11 +19,12 @@ class bridgeUtil(object):
         recv = self.client.http_post(url,443,input,30,True)
         return json.loads(recv)
 
-    def get_user_access_token(self, url='', input = {}):
-        recv = self.client.http_post(url,443,input,30,True)
+    '''
+        
+    def get_user_access_token(self, url='', port = 443, input = {}):
+        recv = self.client.http_post(url,port,input,30,True)
         return json.loads(recv)
 
-    '''
         
     def verify_user(self, url='', port = 443, input = {}):
         recv = self.client.http_post(url,port,input,30,True)
