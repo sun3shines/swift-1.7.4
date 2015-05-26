@@ -227,7 +227,7 @@ class DirerController(Controller):
         
         # env_comment(env, 'get dir content')
         
-        req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
+        req.headers['x-recursive']=str(req.GET.get('recursive','False')).lower()
         return self.LIST(req)
         
     @public

@@ -75,7 +75,7 @@ class ContainerController(Controller):
             
         old_method = req.method
         req.method = 'GET'
-        req.headers['x-recursive']=str(req.GET('recursive','False')).lower()
+        req.headers['x-recursive']=str(req.GET.get('recursive','False')).lower()
         resp = self.GETorHEAD(req)
         req.method = old_method
         return resp

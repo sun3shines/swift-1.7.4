@@ -348,7 +348,7 @@ class ContainerController(object):
         ret.content_type = out_content_type
         ret.charset = 'utf-8'
         return ret
-
+    
     @public
     def POST(self, req):
         """Handle HTTP POST request."""
