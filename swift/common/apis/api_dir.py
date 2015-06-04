@@ -121,6 +121,31 @@ def file_rename_env(env):
     
     return True
 
+def is_dir_rename(env):
+    
+    method = env.get('REQUEST_METHOD')
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)
+    
+    if 'PUT' == method and 'RENAME' == param.get('op') and 'd'==param.get('ftype'): 
+        return True
+    
+    return False
+
+def dir_rename_env(env):
+    
+    env_comment(env, 'rename dir')
+        
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)
+    if param.has_key('destination'):
+        dst = param.get('destination')
+        env['HTTP_DESTINATION'] = dst
+        param.pop('destination')
+    env['QUERY_STRING'] = newparamqs(param)
+    
+    return True
+
 def is_file_attr(env):
     
     method = env.get('REQUEST_METHOD')

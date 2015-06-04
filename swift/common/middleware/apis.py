@@ -37,6 +37,9 @@ class ApiMiddleware(object):
         elif is_file_rename(env):
             file_rename_env(env)
             
+        elif is_dir_rename(env):
+            dir_rename_env(env)
+            
         elif is_file_attr(env):
             file_attr_env(env)
             
