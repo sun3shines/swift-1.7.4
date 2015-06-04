@@ -722,7 +722,7 @@ class ObjectController(Controller):
         resp = self.make_requests(req, self.app.object_ring,
                 object_partition, 'MOVE', req.path_info, headers)
         
-        if object_versions:
+        if False and object_versions:
             # this is a version manifest and needs to be handled differently
             
             lcontainer = object_versions.split('/')[0]

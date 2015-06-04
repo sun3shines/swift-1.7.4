@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from swift.common.utils import split_path,qsparam,newparamqs
+from swift.common.utils import split_path,qsparam,newparamqs,json
 from swift.common.env_utils import *
 from webob import Request,Response
+from cStringIO import StringIO
 
 def is_dir_create(env):
     
@@ -119,6 +120,52 @@ def file_rename_env(env):
     param['op'] = 'MOVE'
     env['QUERY_STRING'] = newparamqs(param)
     
+    return True
+
+def is_file_move(env):
+    
+    method = env.get('REQUEST_METHOD')
+    qs = env.get('QUERY_STRING','') 
+    param = qsparam(qs)
+    
+    if 'PUT' == method and 'MOVE' == param.get('op') and 'f'==param.get('ftype'): 
+        return True
+    
+    return False
+
+def file_move_env(env):
+    
+    env_comment(env, 'move file')
+    
+    env['REQUEST_METHOD'] = 'POST'
+    
+    qs = env.get('QUERY_STRING','') 
+    path = env['PATH_INFO']
+    vers,account, src_container,src_obj = split_path(path,1, 4,True)
+    
+    srcf = '/%s/%s' % (src_container,src_obj)
+    
+    destination = env['HTTP_DESTINATION']
+    dst_path = '/'.join(['',vers,account,destination])
+    _,_,dst_container,dst_obj = split_path(dst_path,1, 4,True)
+    
+    dstf = '/%s/%s' % (dst_container,dst_obj)
+    
+    srcd = '/%s_versions/%s' % (src_container,src_obj)
+    dstd = '/%s_versions/%s' % (dst_container,dst_obj)
+    
+    env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(['',vers,account,'batch'])
+    
+    param = qsparam(qs)     
+    param['op'] = 'MOVE'
+    param['type'] = 'NORMAL'
+    env['QUERY_STRING'] = newparamqs(param)
+    
+    move_data = {"list":[{"from":srcf,"to":dstf,"ftype":"f"},{"from":srcd,"to":dstd,"ftype":"d"}]}
+    json_data = json.dumps(move_data)
+    env['CONTENT_LENGTH'] = str(len(json_data))
+    env['wsgi.input'] = StringIO(json_data)
+
     return True
 
 def is_dir_rename(env):
