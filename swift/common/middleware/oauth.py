@@ -254,7 +254,7 @@ class OAuth(object):
             memcache_user_key = '%s/user/%s' % (self.reseller_prefix, account_user)
             memcache_client.set(memcache_user_key, token,timeout=expires_in)
             
-        oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent_id':account_user})
+        oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent':account_user})
         return Response(body=oauth_data_list,request=req)
         
 def filter_factory(global_conf, **local_conf):
