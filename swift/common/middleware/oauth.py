@@ -45,7 +45,7 @@ class OAuth(object):
         self.reseller_prefix = conf.get('reseller_prefix', 'AUTH').strip()
         
         self.auth_prefix = conf.get('auth_prefix', '/oauth/access_token')
-        
+        self.verify_prefix = '/oauth/verify_token'
         self.token_life = int(conf.get('token_life', 86400))
         
         self.resourcename = conf.get('resourcename', 'SeAgent').strip()
@@ -61,9 +61,11 @@ class OAuth(object):
         self.scope = conf.get('scope', 'user').strip()
         
     def __call__(self, env, start_response):
-
         if env.get('PATH_INFO', '').startswith(self.auth_prefix):
             return self.handle(env, start_response)
+        
+        if env.get('PATH_INFO', '').startswith(self.verify_prefix):
+            return self.verify(env, start_response)
         
         req = Request(env)
         
@@ -80,24 +82,11 @@ class OAuth(object):
             user_info = self.get_cache_user_info(env, token)
             if user_info:
                 
-                '''
-                if 'valid' != user_info.get('status'):
-                    self.logger.increment('unauthorized')
-                    return HTTPUnauthorized()(env, start_response)
-                
-                
-                if isinstance(user_info['owner'],dict) and user_info['owner'].has_key('email') and user_info['owner'].get('email'):
-                    tenant = 'AUTH_' + user_info['owner']['email'].replace('@','').replace('.','')
-                else:
-                    self.logger.increment('unauthorized')
-                    return HTTPUnauthorized()(env, start_response)
-                '''
-                
                 tenant = 'AUTH_' + user_info.replace('@','').replace('.','')
                 if account != tenant:
                     self.logger.increment('unauthorized')
                     return HTTPUnauthorized()(env, start_response)
-            
+                
                 env['REMOTE_USER'] = user_info
                 user = user_info 
                 env['HTTP_X_AUTH_TOKEN'] = '%s,%s' % (user, token)
@@ -147,16 +136,6 @@ class OAuth(object):
             if expires < time():
                 user_info = None
                 
-        '''
-        if not user_info:
-            user_info = self.validateToken(token)
-            expires = time() + self.token_life
-            memcache_token_key = '%s/token/%s' % (self.reseller_prefix, token)
-            
-            memcache_client.set(memcache_token_key, (expires, user_info),
-                                timeout=float(expires - time()))
-        '''
-                 
         return user_info
 
     def handle(self, env, start_response):
@@ -173,6 +152,56 @@ class OAuth(object):
                            [('Content-Type', 'text/plain')])
             return ['Internal server error.\n']
         
+    def verify(self, env, start_response):
+        
+        req = Request(env)
+        
+        try:
+            
+            return self.verify_request(req,env)(env, start_response)
+            
+        except (Exception, Timeout):
+            print "EXCEPTION IN handle: %s: %s" % (format_exc(), env)
+            self.logger.increment('errors')
+            start_response('500 Server Error',
+                           [('Content-Type', 'text/plain')])
+            return ['Internal server error.\n']
+        
+        
+    def verify_request(self,req,env):
+        
+        try:
+            version, account, container, obj = split_path(req.path_info,
+                minsegs=1, maxsegs=4, rest_with_last=True)
+        except ValueError:
+            self.logger.increment('errors')
+            return HTTPNotFound(request=req)
+        
+        token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
+        verify_flag = False
+        if token :
+        
+            user_info = self.get_cache_user_info(env, token)
+            if user_info:
+                
+                tenant = 'AUTH_' + user_info.replace('@','').replace('.','')
+                if account != tenant:
+                    self.logger.increment('unauthorized')
+                    verify_flag = False
+
+                verify_flag = True
+            else:
+               
+                self.logger.increment('unauthorized')
+                verify_flag = False
+            
+        else:
+            self.logger.increment('unauthorized')
+            verify_flag = False
+        
+        oauth_data_list = json.dumps({'verify_flag':str(verify_flag).lower()})
+        return Response(body=oauth_data_list,request=req)
+        
     def handle_request(self, req):
         
         req.start_time = time()
@@ -186,8 +215,6 @@ class OAuth(object):
             req.response = handler(req)
         return req.response
     
-
-
     def get_user_accessToken(self,user_email,user_passwd):
         
         client = bridgeUtil()

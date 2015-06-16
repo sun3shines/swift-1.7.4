@@ -100,7 +100,6 @@ def get_socket(conf, default_port=8080):
                               'testing purposes. Use external SSL ' \
                               'termination for a production deployment.'
         get_logger(conf).warning(ssl_warning_message)
-        print _(ssl_warning_message)
     return sock
 
 # TODO: pull pieces of this out to test
