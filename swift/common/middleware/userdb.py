@@ -3,7 +3,7 @@
 
 import sqlite3
 import os
-
+from urllib import unquote
 def get_conn(path):
     
     conn = sqlite3.connect(path)
@@ -135,7 +135,7 @@ def db_delete(dbpath):
 def db_insert(dbpath,tx_id, path, type, method, tenant, url, swifttime, status, comment):
     
     save_sql = '''INSERT INTO operations values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
-    data = [(None, tx_id, path, type, method, tenant, url, swifttime, status, comment)]
+    data = [(None, tx_id, unquote(path), type, method, tenant, unquote(url), swifttime, status, comment)]
     conn = get_conn(dbpath)
     # conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore')
     db_save(conn, save_sql, data)

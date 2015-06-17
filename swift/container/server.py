@@ -87,6 +87,9 @@ class ContainerController(object):
         if all([account_host, account_partition, account_device]):
             account_ip, account_port = account_host.rsplit(':', 1)
             new_path = '/' + '/'.join([account, container])
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
+            
             info = broker.get_info()
             account_headers = {'x-put-timestamp': info['put_timestamp'],
                 'x-delete-timestamp': info['delete_timestamp'],

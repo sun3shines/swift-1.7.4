@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-
 from urllib import quote
 from cStringIO import StringIO
 from datetime import datetime
 import mimetypes
 from webob import Request
+from urllib import unquote
 
 from webob.exc import HTTPBadRequest, HTTPServerError, \
     HTTPMethodNotAllowed, HTTPRequestEntityTooLarge, HTTPLengthRequired

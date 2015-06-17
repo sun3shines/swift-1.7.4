@@ -42,6 +42,7 @@ class ContainerController(Controller):
 
 
     def GETorHEAD(self, req):
+
         """Handler for HTTP GET/HEAD requests."""
         if not self.account_info(self.account_name)[1]:
             return HTTPNotFound(request=req)

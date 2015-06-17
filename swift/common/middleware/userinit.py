@@ -115,6 +115,9 @@ class Userinit(object):
     
         new_path = '/' + version + '/' + account+ user_path
         
+        if isinstance(new_path, unicode):
+            new_path = new_path.encode('utf-8')
+                
         if not check_utf8(new_path):
             return ([quote(new_path), HTTPPreconditionFailed().status])
             
@@ -127,7 +130,14 @@ class Userinit(object):
         new_req.method = new_method
         if new_headers:
             new_req.headers.update(new_headers)
+        
+        for ikey,ivalue in new_req.headers.items():
+            if isinstance(ivalue, unicode):
+                ivalue = ivalue.encode('utf-8')
+            new_req.headers[ikey] = ivalue
             
+        new_req.headers = new_headers
+           
         if new_params:
             new_req.GET.update(new_params)
             

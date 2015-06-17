@@ -118,6 +118,10 @@ class Batch(object):
             del(new_env['wsgi.input'])
             new_env['CONTENT_LENGTH'] = 0
             new_path = '/' + version + '/' + account+ ppath
+            
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
+                
             if not check_utf8(new_path):
                 failed_files.append([quote(new_path),
                                      HTTPPreconditionFailed().status])
@@ -125,6 +129,10 @@ class Batch(object):
         
             new_env['PATH_INFO'] = new_path
             new_env['QUERY_STRING'] = new_env['QUERY_STRING'] + '&ftype=%s' % (pftype)
+            
+            if isinstance(new_env.get('PATH_INFO'), unicode):
+                new_env['PATH_INFO'] = new_env['PATH_INFO'].encode('utf-8')
+            
             new_req = Request.blank(new_path, new_env)
             new_req.GET['ftype'] = pftype
             
@@ -185,6 +193,8 @@ class Batch(object):
             new_env['CONTENT_LENGTH'] = 0
         
             new_path = '/' + version + '/' + account+ pfrom
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
             if not check_utf8(new_path):
                 failed_files.append([quote(new_path),
                                      HTTPPreconditionFailed().status])
@@ -255,6 +265,9 @@ class Batch(object):
             new_env['CONTENT_LENGTH'] = 0
         
             new_path = '/' + version + '/' + account+ pfrom
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
+                
             if not check_utf8(new_path):
                 failed_files.append([quote(new_path),
                                      HTTPPreconditionFailed().status])
@@ -263,6 +276,7 @@ class Batch(object):
             new_env['PATH_INFO'] = new_path
             new_env['QUERY_STRING'] = new_env['QUERY_STRING'] + '&ftype=%s' % (pftype)
             
+                
             new_req = Request.blank(new_path, new_env)
             
             new_req.headers['Destination'] = pto
@@ -326,6 +340,9 @@ class Batch(object):
             new_env['CONTENT_LENGTH'] = 0
         
             new_path = '/' + version + '/' + account+ '/' + 'recycle/user' + '/' + puuid
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
+                
             if not check_utf8(new_path):
                 failed_files.append([quote(new_path),
                                      HTTPPreconditionFailed().status])
@@ -394,6 +411,9 @@ class Batch(object):
             del(new_env['wsgi.input'])
             new_env['CONTENT_LENGTH'] = 0
             new_path = '/' + version + '/' + account+ ppath
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
+                
             if not check_utf8(new_path):
                 failed_files.append([quote(new_path),
                                      HTTPPreconditionFailed().status])

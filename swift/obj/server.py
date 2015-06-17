@@ -185,6 +185,8 @@ class ObjectController(object):
         if all([account_host, account_partition, account_device]):
             account_ip, account_port = account_host.rsplit(':', 1)
             new_path = '/' + account
+            if isinstance(new_path, unicode):
+                new_path = new_path.encode('utf-8')
             
             if add_flag:
                 bytes_key = 'x-account-meta-bytes-add'

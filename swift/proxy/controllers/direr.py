@@ -232,9 +232,7 @@ class DirerController(Controller):
         
     @public
     def COPY(self,req):    
-        
         # env_comment(req.environ, 'copy dir')
-            
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         

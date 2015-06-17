@@ -16,6 +16,8 @@ class ApiMiddleware(object):
         self.logger = get_logger(conf, log_route='catch-errors')
 
     def __call__(self, env, start_response):
+        
+        
         if is_get_quota(env):
             get_quota_env(env)
             
@@ -61,6 +63,15 @@ class ApiMiddleware(object):
         
         else:
             set_comment(env)
+            
+        
+        if isinstance(env.get('PATH_INFO'), unicode):
+            env['PATH_INFO'] = env['PATH_INFO'].encode('utf-8')
+        
+        if env.get('QUERY_STRING'):
+            if isinstance(env['QUERY_STRING'], unicode):
+                env['QUERY_STRING'] = env['QUERY_STRING'].encode('utf-8')
+                
         return self.app(env, start_response)
 
 def filter_factory(global_conf, **local_conf):

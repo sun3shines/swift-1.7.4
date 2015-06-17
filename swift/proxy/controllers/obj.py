@@ -214,9 +214,20 @@ class ObjectController(Controller):
         self.object_name = unquote(object_name)
 
     def _listing_iter(self, lcontainer, lprefix, env):
+        
+        if isinstance(lcontainer, unicode):
+            lcontainer = lcontainer.encode('utf-8')
+                
+        if isinstance(lprefix, unicode):
+            lprefix = lprefix.encode('utf-8')
+                
         lpartition, lnodes = self.app.container_ring.get_nodes(self.account_name, lcontainer)
         marker = ''
         while True:
+            
+            if isinstance(marker, unicode):
+                marker = marker.encode('utf-8')
+            
             lreq = Request.blank('i will be overridden by env', environ=env)
             # Don't quote PATH_INFO, by WSGI spec
             lreq.environ['PATH_INFO'] = \
