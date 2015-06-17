@@ -385,14 +385,14 @@ class ObjectController(Controller):
             conn.queue.task_done()
 
     def _connect_put_node(self, nodes, part, path, headers,
-                          logger_thread_locals):
+                          logger_thread_locals,query_string = ''):
         """Method for a file PUT connect"""
         self.app.logger.thread_locals = logger_thread_locals
         for node in nodes:
             try:
                 with ConnectionTimeout(self.app.conn_timeout):
                     conn = http_connect(node['ip'], node['port'],
-                            node['device'], part, 'PUT', path, headers)
+                            node['device'], part, 'PUT', path, headers,query_string)
                 with Timeout(self.app.node_timeout):
                     resp = conn.getexpect()
                 if resp.status == HTTP_CONTINUE:
@@ -412,7 +412,6 @@ class ObjectController(Controller):
          
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
-        
         (container_partition, containers,object_versions ) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         
@@ -480,7 +479,7 @@ class ObjectController(Controller):
                 nheaders['X-Delete-At-Partition'] = delete_at_part
                 nheaders['X-Delete-At-Device'] = node['device']
             pile.spawn(self._connect_put_node, node_iter, partition,
-                       req.path_info, nheaders, self.app.logger.thread_locals)
+                       req.path_info, nheaders, self.app.logger.thread_locals,req.query_string)
         conns = [conn for conn in pile if conn]
         if len(conns) <= len(nodes) / 2:
             self.app.logger.error(

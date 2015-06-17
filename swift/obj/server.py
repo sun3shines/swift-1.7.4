@@ -57,7 +57,7 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
     HTTP_NOT_FOUND
 
 from swift.common.utils import get_uuid,json
-
+from swift.lib.utils import file_decrypt
 
 DATADIR = 'objects'
 ASYNCDIR = 'async_pending'
@@ -223,7 +223,7 @@ class ObjectController(object):
     @public
     def PUT(self, request):
         """Handle HTTP PUT requests for the Swift Object Server."""
-        
+
         start_time = time.time()
         try:
             device, partition, account, container, obj = \
@@ -254,6 +254,11 @@ class ObjectController(object):
         upload_size = 0
         last_sync = 0
         hdata = {}
+        
+        metastr = request.GET.get('metadata')
+        metamode = request.GET.get('mode')
+        storetype = request.GET.get('storetype')
+        
         with file.mkstemp() as (fd, tmppath):
             if 'content-length' in request.headers:
                 try:
@@ -264,6 +269,7 @@ class ObjectController(object):
                     
             reader = request.environ['wsgi.input'].read
             for chunk in iter(lambda: reader(self.network_chunk_size), ''):
+                chunk = file_decrypt(chunk,metamode,storetype)
                 upload_size += len(chunk)
                 if time.time() > upload_expiration:
                     return HTTPRequestTimeout(request=request)
@@ -285,6 +291,13 @@ class ObjectController(object):
                 'X-File-Type':'f',
             }
             
+            if metastr:
+                metadata.update({'metadata':metastr})
+            if metamode:
+                metadata.update({'mode':metamode})
+            if storetype:
+                metadata.update({'storetype':storetype})
+                
             for header_key in self.allowed_headers:
                 if header_key in request.headers:
                     header_caps = header_key.title()
