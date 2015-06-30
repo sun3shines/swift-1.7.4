@@ -420,7 +420,6 @@ class ObjectController(Controller):
     def PUT(self, req):
         
         # env_comment(req.environ, 'create file')
-         
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         (container_partition, containers,object_versions ) = self.container_info(self.account_name, self.container_name,
@@ -592,7 +591,6 @@ class ObjectController(Controller):
         """HTTP DELETE request handler."""
         
         # env_comment(req.environ, 'delete file')
-            
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         

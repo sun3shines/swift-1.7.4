@@ -225,7 +225,6 @@ class ObjectController(object):
     @public
     def PUT(self, request):
         """Handle HTTP PUT requests for the Swift Object Server."""
-
         start_time = time.time()
         try:
             device, partition, account, container, obj = \
@@ -450,7 +449,6 @@ class ObjectController(object):
 
     @public
     def DELETE_RECYCLE(self, req):
-           
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)

@@ -4,7 +4,7 @@ from swift.common.utils import split_path,qsparam,newparamqs,json
 from swift.common.env_utils import *
 from webob import Request,Response
 from cStringIO import StringIO
-
+import urllib
 def is_dir_create(env):
     
     method = env.get('REQUEST_METHOD')
@@ -257,13 +257,13 @@ def file_versions_env(env):
     env_comment(env, 'get file versions')
         
     path = env.get('PATH_INFO')
-    vers,account, container,obj = split_path(path,1, 4,True)
+    vers,account, container,obj = split_path(urllib.unquote(path),1, 4,True)
     env['PATH_INFO'] = env['RAW_PATH_INFO'] = '/'.join(['',vers,account,container+'_versions'])
     
     qs = env.get('QUERY_STRING','') 
     param = qsparam(qs)    
     param.pop('op')
-    param['prefix'] = obj+'/'
+    param['prefix'] = urllib.quote(obj+'/')
     env['QUERY_STRING'] = newparamqs(param)
     
     return True
