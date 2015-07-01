@@ -124,13 +124,20 @@ class Batch(object):
              'Number Not Found': not_found_count},
             failed_files)
         
+        if batchparams.get('list') and success_count < len(batchparams.get('list')):
+            return jresponse('-1','some failed',req,200,param=resp_body)
+        
+        elif batchparams.get('list') and success_count == len(batchparams.get('list')):
+            return jresponse('0','',req,200)
+        
+        '''
         if (success_count or not_found_count) and not failed_files:
             return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
                 json.dumps(resp_body), content_type=out_content_type)
-            
+        ''' 
         return HTTPBadRequest('Invalid batch delete.')
     
     def batch_copy(self,req):
@@ -194,13 +201,20 @@ class Batch(object):
              'Number Not Found': not_found_count},
             failed_files)
         
+        if batchparams.get('list') and success_count < len(batchparams.get('list')):
+            return jresponse('-1','some failed',req,200,param=resp_body)
+        
+        elif batchparams.get('list') and success_count == len(batchparams.get('list')):
+            return jresponse('0','',req,200)
+        
+        '''
         if (success_count or not_found_count) and not failed_files:
             return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
                 json.dumps(resp_body), content_type=out_content_type)
-            
+        ''' 
         return HTTPBadRequest('Invalid batch delete.')
     
 
@@ -281,6 +295,13 @@ class Batch(object):
         if move_flag and batchparams.get('list') and len(batchparams.get('list'))==2:
             return move_resp
         
+        if batchparams.get('list') and success_count < len(batchparams.get('list')):
+            return jresponse('-1','some failed',req,200,param=resp_body)
+        
+        elif batchparams.get('list') and success_count == len(batchparams.get('list')):
+            return jresponse('0','',req,200)
+        
+        '''
         if (success_count or not_found_count) and not failed_files:
             
             return jresponse('0','',req,200,param=resp_body)
@@ -288,7 +309,8 @@ class Batch(object):
         if failed_files:
             return failed_file_response_type(
                 json.dumps(resp_body), content_type=out_content_type)
-            
+        '''
+         
         return HTTPBadRequest('Invalid batch move.')
         
     
@@ -355,13 +377,20 @@ class Batch(object):
              'Number Not Found': not_found_count},
             failed_files)
         
+        if batchparams.get('list') and success_count < len(batchparams.get('list')):
+            return jresponse('-1','some failed',req,200,param=resp_body)
+        
+        elif batchparams.get('list') and success_count == len(batchparams.get('list')):
+            return jresponse('0','',req,200)
+        
+        '''
         if (success_count or not_found_count) and not failed_files:
             return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
                 json.dumps(resp_body), content_type=out_content_type)
-            
+        ''' 
         return HTTPBadRequest('Invalid batch delete.')
     
     def batch_reset(self,req):
@@ -433,13 +462,20 @@ class Batch(object):
         if rcyc_flag:
             return rcy_resp
         
+        if batchparams.get('list') and success_count < len(batchparams.get('list')):
+            return jresponse('-1','some failed',req,200,param=resp_body)
+        
+        elif batchparams.get('list') and success_count == len(batchparams.get('list')):
+            return jresponse('0','',req,200)
+        
+        '''
         if (success_count or not_found_count) and not failed_files:
             return jresponse('0','',req,200,param=resp_body)
             
         if failed_files:
             return failed_file_response_type(
                 json.dumps(resp_body), content_type=out_content_type)
-            
+        ''' 
         return HTTPBadRequest('Invalid batch delete.')
     
     def handle_batch(self, req):
