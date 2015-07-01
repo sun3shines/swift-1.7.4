@@ -19,7 +19,7 @@ from ConfigParser import ConfigParser, NoSectionError, NoOptionError, \
 
 from webob.exc import HTTPBadRequest, HTTPLengthRequired, \
     HTTPRequestEntityTooLarge
-
+from swift.common.bufferedhttp import jresponse
 constraints_conf = ConfigParser()
 constraints_conf.read('/etc/swift/swift.conf')
 
@@ -88,30 +88,30 @@ def check_metadata(req, target_type):
         if not key.lower().startswith(prefix):
             continue
         if not key:
-            return HTTPBadRequest(body='Metadata name cannot be empty',
-                    request=req, content_type='text/plain')
-            
+            respbody='Metadata name cannot be empty'
+            return jresponse('-1', respbody, req,400)
+        
         meta_count += 1
         meta_size += len(key) + len(value)
         if len(key) > MAX_META_NAME_LENGTH:
-            return HTTPBadRequest(
-                    body='Metadata name too long; max %d'
-                        % MAX_META_NAME_LENGTH,
-                    request=req, content_type='text/plain')
+            respbody='Metadata name too long; max %d' % MAX_META_NAME_LENGTH
+            return jresponse('-1', respbody, req,400)
+               
         elif len(value) > MAX_META_VALUE_LENGTH:
-            return HTTPBadRequest(
-                    body='Metadata value too long; max %d'
-                        % MAX_META_VALUE_LENGTH,
-                    request=req, content_type='text/plain')
+            
+            respbody='Metadata value too long; max %d' % MAX_META_VALUE_LENGTH
+            return jresponse('-1', respbody, req,400)
+        
         elif meta_count > MAX_META_COUNT:
-            return HTTPBadRequest(
-                    body='Too many metadata items; max %d' % MAX_META_COUNT,
-                    request=req, content_type='text/plain')
+          
+            respbody='Too many metadata items; max %d' % MAX_META_COUNT
+            return jresponse('-1', respbody, req,400)
+        
         elif meta_size > MAX_META_OVERALL_SIZE:
-            return HTTPBadRequest(
-                    body='Total metadata too large; max %d'
-                        % MAX_META_OVERALL_SIZE,
-                    request=req, content_type='text/plain')
+            
+            respbody='Total metadata too large; max %d' % MAX_META_OVERALL_SIZE
+            return jresponse('-1', respbody, req,400)
+        
     return None
 
 def check_object_creation(req, object_name):
@@ -127,16 +127,17 @@ def check_object_creation(req, object_name):
                             bad metadata
     """
     if req.content_length and req.content_length > MAX_FILE_SIZE:
-        return HTTPRequestEntityTooLarge(body='Your request is too large.',
-                request=req, content_type='text/plain')
+        respbody='Your request is too large.'
+        return jresponse('-1', respbody, req,413)
+            
     if req.content_length is None and \
             req.headers.get('transfer-encoding') != 'chunked':
-        return HTTPLengthRequired(request=req)
+        
+        return jresponse('-1', 'length required', req,411)
     
     if len(object_name) > MAX_OBJECT_NAME_LENGTH:
-        return HTTPBadRequest(body='Object name length of %d longer than %d' %
-                (len(object_name), MAX_OBJECT_NAME_LENGTH), request=req,
-                content_type='text/plain')
+        respbody='Object name length of %d longer than %d' % (len(object_name), MAX_OBJECT_NAME_LENGTH)
+        return jresponse('-1', respbody, req,400)    
     
     return None
 

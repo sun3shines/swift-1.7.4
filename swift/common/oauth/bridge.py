@@ -23,6 +23,8 @@ class bridgeUtil(object):
         
     def get_user_access_token(self, url='', port = 443, input = {}):
         recv = self.client.http_post(url,port,input,30,True)
+        if not recv:
+            return None
         return json.loads(recv)
 
         

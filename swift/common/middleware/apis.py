@@ -64,7 +64,6 @@ class ApiMiddleware(object):
         else:
             set_comment(env)
             
-        
         if isinstance(env.get('PATH_INFO'), unicode):
             env['PATH_INFO'] = env['PATH_INFO'].encode('utf-8')
         

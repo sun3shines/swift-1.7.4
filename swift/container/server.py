@@ -33,7 +33,7 @@ from swift.common.utils import get_logger, get_param, hash_path, public, \
     TRUE_VALUES, validate_device_partition, json
 from swift.common.constraints import CONTAINER_LISTING_LIMIT, \
     check_mount, check_float, check_utf8, FORMAT2CONTENT_TYPE
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.exceptions import ConnectionTimeout
 
 from swift.common.http import HTTP_NOT_FOUND, is_success, \
@@ -108,7 +108,7 @@ class ContainerController(object):
                     account_response = conn.getresponse()
                     account_response.read()
                     if account_response.status == HTTP_NOT_FOUND:
-                        return HTTPNotFound(request=req)
+                        return jresponse('-1','not found',req,404)
                     elif not is_success(account_response.status):
                         self.logger.error(_('ERROR Account update failed '
                             'with %(ip)s:%(port)s/%(device)s (will retry '
@@ -134,14 +134,15 @@ class ContainerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
+         
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
-            return HTTPBadRequest(body='Missing timestamp', request=req,
-                        content_type='text/plain')
+            return jresponse('-1', 'Missing timestamp', req, 400)
+            
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
+         
         broker = self._get_container_broker(drive, part, account, container)
         
         if account.startswith(self.auto_create_account_prefix) and obj and \
@@ -149,24 +150,24 @@ class ContainerController(object):
             pass
         
         if not os.path.exists(broker.db_file):
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404) 
         if obj:     # delete object
-            return HTTPNoContent(request=req)
+            return jresponse('0', '', req,204) 
         else:
             # delete container
             if not broker.empty():
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409) 
             existed = float(broker.get_info()['put_timestamp']) and \
                       not broker.is_deleted()
             broker.delete_db(req.headers['X-Timestamp'])
             if not broker.is_deleted():
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409) 
             resp = self.account_update(req, account, container, broker)
             if resp:
                 return resp
             if existed:
-                return HTTPNoContent(request=req)
-            return HTTPNotFound()
+                return jresponse('0', '', req,204) 
+            return jresponse('-1', 'not found', req,404) 
 
     @public
     def PUT(self, req):
@@ -178,26 +179,29 @@ class ContainerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
+         
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
-            return HTTPBadRequest(body='Missing timestamp', request=req,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', req,400)
+         
         if 'x-container-sync-to' in req.headers:
             err = validate_sync_to(req.headers['x-container-sync-to'],
                                    self.allowed_sync_hosts)
             if err:
-                return HTTPBadRequest(err)
+                return jresponse('-1', 'bad request', req,400)
+             
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
+         
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         broker = self._get_container_broker(drive, part, account, container)
         if obj:     # put container object
             
             if not os.path.exists(broker.db_file):
-                return HTTPNotFound()
-            return HTTPCreated(request=req)
+                return jresponse('-1', 'not found', req,404)
+             
+            return jresponse('0', '', req,201) 
         else:   # put container
             if not os.path.exists(broker.db_file):
                 
@@ -206,7 +210,8 @@ class ContainerController(object):
                 created = broker.is_deleted()
                 broker.update_put_timestamp(timestamp)
                 if broker.is_deleted():
-                    return HTTPConflict(request=req)
+                    return jresponse('-1', 'conflict', req,409) 
+                
             metadata = {}
             metadata.update((key, value)
                 for key, value in req.headers.iteritems()
@@ -222,10 +227,8 @@ class ContainerController(object):
             resp = self.account_update(req, account, container, broker)
             if resp:
                 return resp
-            if created:
-                return HTTPCreated(request=req)
-            else:
-                return HTTPAccepted(request=req)
+            
+            return jresponse('0', '', req,201) 
 
     @public
     def HEAD(self, req):
@@ -236,14 +239,15 @@ class ContainerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
+         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507) 
         broker = self._get_container_broker(drive, part, account, container)
         
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404) 
+        
         info = broker.get_info()
         headers = {
             'X-Container-Object-Count': info['object_count'],
@@ -256,7 +260,8 @@ class ContainerController(object):
             if value != '' and (key.lower() in self.save_headers or
                                 key.lower().startswith('x-container-meta-')))
         
-        return HTTPNoContent(request=req, headers=headers)
+        
+        return jresponse('0', '', req,204,headers)
         
     @public
     def META(self, req):
@@ -268,14 +273,14 @@ class ContainerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
+         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507) 
         broker = self._get_container_broker(drive, part, account, container)
         
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404) 
         info = broker.get_info()
         headers = {
             'X-Container-Object-Count': info['object_count'],
@@ -303,14 +308,14 @@ class ContainerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
+         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507) 
         broker = self._get_container_broker(drive, part, account, container)
         
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404) 
         info = broker.get_info()
         
         try:
@@ -319,7 +324,8 @@ class ContainerController(object):
             delimiter = get_param(req, 'delimiter')
             if delimiter and (len(delimiter) > 1 or ord(delimiter) > 254):
                 # delimiters can be made more flexible later
-                return HTTPPreconditionFailed(body='Bad delimiter')
+                return jresponse('-1', 'bad delimiter', req,412)
+             
             marker = get_param(req, 'marker', '')
             end_marker = get_param(req, 'end_marker')
             limit = CONTAINER_LISTING_LIMIT
@@ -327,12 +333,13 @@ class ContainerController(object):
             if given_limit and given_limit.isdigit():
                 limit = int(given_limit)
                 if limit > CONTAINER_LISTING_LIMIT:
-                    return HTTPPreconditionFailed(request=req,
-                        body='Maximum limit is %d' % CONTAINER_LISTING_LIMIT)
+                    bodyresp='Maximum limit is %d' % CONTAINER_LISTING_LIMIT
+                    return jresponse('-1', bodyresp, req,412)
+                     
             query_format = get_param(req, 'format')
         except UnicodeDecodeError, err:
-            return HTTPBadRequest(body='parameters not utf8',
-                                  content_type='text/plain', request=req)
+            respbody = 'parameters not utf8'
+            return jresponse('-1', respbody, req,400) 
             
         req.accept = out_content_type = 'application/json'
         recursive = req.headers.get('x-recursive') or req.GET.get('recursive')
@@ -345,7 +352,7 @@ class ContainerController(object):
         container_list = json.dumps(container_list_data)
         
         if not container_list:
-            return HTTPNoContent(request=req)
+            return jresponse('0', '', req,204) 
 
         ret = Response(body=container_list, request=req)
         ret.content_type = out_content_type
@@ -361,22 +368,20 @@ class ContainerController(object):
             drive, part, account, container = split_path(unquote(req.path), 4)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                  request=req)
+            return jresponse('-1', 'bad request', req,400) 
         if 'x-timestamp' not in req.headers or \
                 not check_float(req.headers['x-timestamp']):
-            return HTTPBadRequest(body='Missing or bad timestamp',
-                request=req, content_type='text/plain')
+            return jresponse('-1', 'bad request', req,400) 
         if 'x-container-sync-to' in req.headers:
             err = validate_sync_to(req.headers['x-container-sync-to'],
                                    self.allowed_sync_hosts)
             if err:
-                return HTTPBadRequest(err)
+                return jresponse('-1', 'bad request', req,400) 
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507) 
         broker = self._get_container_broker(drive, part, account, container)
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404) 
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         metadata = {}
         metadata.update((key, value)
@@ -391,7 +396,7 @@ class ContainerController(object):
                         broker.metadata['X-Container-Sync-To']:
                     broker.set_x_container_sync_points(-1, -1)
             broker.update_metadata(metadata)
-        return HTTPNoContent(request=req)
+        return jresponse('0', '', req,204) 
 
     def __call__(self, env, start_response):
         
@@ -399,7 +404,7 @@ class ContainerController(object):
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
         if not check_utf8(req.path_info):
-            res = HTTPPreconditionFailed(body='Invalid UTF8')
+            res = jresponse('-1','Invalid UTF8',req,412)
         else:
             try:
                 # disallow methods which have not been marked 'public'
@@ -407,25 +412,14 @@ class ContainerController(object):
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
                 except AttributeError:
-                    res = HTTPMethodNotAllowed()
+                    res = jresponse('-1', 'method not allowed', req,405) 
                 else:
                     res = method(req)
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
-                res = HTTPInternalServerError(body=traceback.format_exc())
-        trans_time = '%.4f' % (time.time() - start_time)
-        log_message = '%s - - [%s] "%s %s" %s %s "%s" "%s" "%s" %s' % (
-            req.remote_addr,
-            time.strftime('%d/%b/%Y:%H:%M:%S +0000',
-                          time.gmtime()),
-            req.method, req.path,
-            res.status.split()[0], res.content_length or '-',
-            req.headers.get('x-trans-id', '-'),
-            req.referer or '-', req.user_agent or '-',
-            trans_time)
+                res = jresponse('-1', 'InternalServerError', req,500)
         
-        self.logger.info(log_message)
         return res(env, start_response)
 
 

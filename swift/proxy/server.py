@@ -1,28 +1,6 @@
 # Copyright (c) 2010-2012 OpenStack, LLC.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# NOTE: swift_conn
-# You'll see swift_conn passed around a few places in this file. This is the
-# source httplib connection of whatever it is attached to.
-#   It is used when early termination of reading from the connection should
-# happen, such as when a range request is satisfied but there's still more the
-# source connection would like to send. To prevent having to read all the data
-# that could be left, the source connection can be .close() and then reads
-# commence to empty out any buffers.
-#   These shenanigans are to ensure all related objects can be garbage
-# collected. We've seen objects hang around forever otherwise.
 
 import mimetypes
 import os
@@ -46,6 +24,7 @@ from swift.proxy.controllers import AccountController, ObjectController, \
     ContainerController, DirerController,LinkController,Controller
 
 from swift.proxy.controllers.req_param import check_path_parts 
+from swift.common.bufferedhttp import jresponse
 
 class Application(object):
     """WSGI application for the proxy server."""
@@ -160,7 +139,7 @@ class Application(object):
             return self.handle_request(req)(env, start_response)
         
         except UnicodeError:
-            err = HTTPPreconditionFailed(request=req, body='Invalid UTF8')
+            err =  jresponse('-1','Invalid UTF8',req,412)
             return err(env, start_response)
         except (Exception, Timeout):
             start_response('500 Server Error',
@@ -177,15 +156,15 @@ class Application(object):
         try:
             self.logger.set_statsd_prefix('proxy-server')
             if req.content_length and req.content_length < 0:
-                return HTTPBadRequest(request=req,
-                                      body='Invalid Content-Length')
-
+                return jresponse('-1','Invalid Content-Length',req,400)
+                
             try:
                 if not check_utf8(req.path_info):
-                    return HTTPPreconditionFailed(request=req,
-                                                  body='Invalid UTF8')
+                    
+                    return jresponse('-1','Invalid UTF8',req,412)
             except UnicodeError:
-                return HTTPPreconditionFailed(request=req, body='Invalid UTF8')
+                return jresponse('-1','Invalid UTF8',req,412)
+                
             
             try:
                 controller, path_parts = self.get_controller(req)
@@ -193,9 +172,10 @@ class Application(object):
                 if isinstance(p, unicode):
                     p = p.encode('utf-8')
             except ValueError:
-                return HTTPNotFound(request=req)
+                return jresponse('-1','not found',req,404)
             if not controller:
-                return HTTPPreconditionFailed(request=req, body='Bad URL')
+                return jresponse('-1','Bad URL',req,412)
+            
             if self.deny_host_headers and \
                     req.host.split(':')[0] in self.deny_host_headers:
                 return HTTPForbidden(request=req, body='Invalid host header')
@@ -230,7 +210,7 @@ class Application(object):
             return handler(req)
         except (Exception, Timeout):
             self.logger.exception(_('ERROR Unhandled exception in request'))
-            return HTTPServerError(request=req)
+            return jresponse('-1','ServerERROR',req,500)
 
 
 def app_factory(global_conf, **local_conf):

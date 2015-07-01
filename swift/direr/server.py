@@ -33,7 +33,7 @@ from swift.common.utils import get_logger, get_param, hash_path, public, \
     TRUE_VALUES, validate_device_partition, json
 from swift.common.constraints import CONTAINER_LISTING_LIMIT, \
     check_mount, check_float, check_utf8, FORMAT2CONTENT_TYPE
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.exceptions import ConnectionTimeout
 
 from swift.common.http import HTTP_NOT_FOUND, is_success, \
@@ -97,7 +97,7 @@ class DirerController(object):
                     account_response = conn.getresponse()
                     account_response.read()
                     if account_response.status == HTTP_NOT_FOUND:
-                        return HTTPNotFound(request=req)
+                        return jresponse('-1','not found',req,404)
                     elif not is_success(account_response.status):
                         self.logger.error(_('ERROR Account update failed '
                             'with %(ip)s:%(port)s/%(device)s (will retry '
@@ -121,25 +121,20 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
-            
+            return jresponse('-1', str(err), req,400)
+        
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1','insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
-        
-        # if not broker.empty():
-        #     return HTTPConflict(request=req)
-        
         dirsize = broker.get_data_dir_size()
         
         if broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         broker.delete_db()
         if not broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
         
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -151,28 +146,27 @@ class DirerController(object):
                 dirsize = versize + dirsize
                                 
         self.account_update(req, account, dirsize, add_flag=False)
-        return HTTPNoContent(request=req)
-        
+        return jresponse('0', '', req,204)
+    
     @public
     def RESET(self, req):
-          
+
         try:
             drive, part, account, container, direr = split_path(
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
-            
+            return jresponse('-1', str(err), req,400)
+         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
         dirsize = broker.get_data_dir_size()
         
         if broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
     
         broker.reset_db()
         
@@ -186,20 +180,18 @@ class DirerController(object):
                 dirsize = versize + dirsize
         self.account_update(req, account, dirsize, add_flag=False)
                      
-        return HTTPNoContent(request=req)
+        return jresponse('0', '', req,204)
         
         
         
     @public
     def DELETE_RECYCLE(self, req):
-        
         try:
             drive, part, account, src_container, src_direr = split_path(
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', str(err), req,400)
         
         recycle_uuid = get_uuid()
         recycle_container = 'recycle'
@@ -207,13 +199,13 @@ class DirerController(object):
         user_obj = 'user' + '/' + recycle_uuid
         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         user_broker = self._get_meta_broker(drive, part, account, recycle_container,user_obj,recycle_uuid)
         
         if src_broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         if not user_broker.is_deleted():
             self.del_dir(user_broker.datadir)
@@ -224,8 +216,8 @@ class DirerController(object):
         user_broker.move(src_broker.datadir)
         
         if user_broker.is_deleted():
-            return HTTPConflict(request=req)
-         
+            return jresponse('-1', 'conflict', req,409)
+        
         user_broker.metadata = src_broker.metadata
         user_broker.metadata['user_path'] = '/' + src_container + '/' + src_direr
         user_broker.metadata['recycle_uuid'] = recycle_uuid
@@ -237,7 +229,7 @@ class DirerController(object):
         
         user_broker.update_metadata(user_broker.metadata)
                 
-        return HTTPCreated(request=req)
+        return jresponse('0','',req,201)
     
         
     @public
@@ -248,30 +240,28 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
-        
+            return jresponse('-1', str(err), req,400) 
+            
         try:
             dst_path = req.headers.get('x-move-dst')
             dst_container, dst_direr = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400) 
             
         recycle_uuid = src_direr[5:]
         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         src_broker = self._get_meta_broker(drive, part, account, src_container,src_direr,recycle_uuid)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
         if src_broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         if not dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
                                 
         if dst_broker.fhr_dir_is_deleted():
             dst_broker.create_dir_object(dst_broker.fhr_path)
@@ -279,11 +269,11 @@ class DirerController(object):
         dst_broker.move(src_broker.datadir)
         
         if dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
          
         src_broker.meta_del()
                 
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
         
     @public
     def PUT(self, req):
@@ -293,11 +283,10 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
             
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
@@ -307,13 +296,11 @@ class DirerController(object):
             created = broker.is_deleted()
             broker.update_put_timestamp()
             if broker.is_deleted():
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409)
             
-        if created:
-            return HTTPCreated(request=req)
-        else:
-            return HTTPAccepted(request=req)
-
+        
+        return jresponse('0', '', req,201) 
+        
     @public
     def MOVE(self, req):
         
@@ -322,8 +309,7 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if 'recycle' == src_container:
             return self.MOVE_RECYCLE(req)
@@ -333,26 +319,25 @@ class DirerController(object):
             dst_container, dst_direr = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
             
             
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
         if src_broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404) 
         
         if not dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.move(src_broker.datadir)
         
         if dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
             
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -366,7 +351,7 @@ class DirerController(object):
                                 
                 dst_broker.move(ver_broker.datadir)
                 
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
     
     @public
     def COPY(self, req):
@@ -375,34 +360,31 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         try:
             dst_path = req.headers.get('x-copy-dst')
             dst_container, dst_direr = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
-            
+            return jresponse('-1', 'bad request', req,400)
             
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         dirsize = src_broker.get_data_dir_size()
         if src_broker.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         if not dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.copy(src_broker.datadir)
         
         if dst_broker.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
             
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -420,7 +402,7 @@ class DirerController(object):
                 
         self.account_update(req, account, dirsize, add_flag=True)
         
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
     
         
     @public
@@ -431,29 +413,18 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if container != 'recycle':
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
-        
-        try:
-            out_content_type = req.accept.best_match(
-                                    ['text/plain', 'application/json',
-                                     'application/xml', 'text/xml'],
-                                    default_match='text/plain')
-        except AssertionError, err:
-            return HTTPBadRequest(body='bad accept header: %s' % req.accept,
-                                  content_type='text/plain', request=req)
+            return jresponse('-1', 'not found', req,404)
             
         out_content_type = 'application/json'
         
@@ -474,7 +445,7 @@ class DirerController(object):
        
         else:
             if not container_list:
-                return HTTPNoContent(request=req )
+                return jresponse('0','no content',req,204)
             container_list = '\n'.join(r[0] for r in container_list) + '\n'
             
         ret = Response(body=container_list, request=req )
@@ -489,28 +460,18 @@ class DirerController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if container == 'recycle':
             return self.META_GET(req)
         
         if self.mount_check and not check_mount(self.root, drive):
-            return HTTPInsufficientStorage(drive=drive, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
         if broker.is_deleted():
-            return HTTPNotFound(request=req)
-        
-        try:
-            out_content_type = req.accept.best_match(
-                                    ['text/plain', 'application/json',
-                                     'application/xml', 'text/xml'],
-                                    default_match='text/plain')
-        except AssertionError, err:
-            return HTTPBadRequest(body='bad accept header: %s' % req.accept,
-                                  content_type='text/plain', request=req)
+            return jresponse('-1', 'not found', req,404)
             
         out_content_type = 'application/json'
         
@@ -535,7 +496,8 @@ class DirerController(object):
 
         self.logger.txn_id = req.headers.get('x-trans-id', None)
         if not check_utf8(req.path_info):
-            res = HTTPPreconditionFailed(body='Invalid UTF8')
+            res = jresponse('-1', 'invalid UTF8', req,412)
+            
         else:
             try:
                 # disallow methods which have not been marked 'public'
@@ -543,25 +505,14 @@ class DirerController(object):
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
                 except AttributeError:
-                    res = HTTPMethodNotAllowed()
+                    res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
-                res = HTTPInternalServerError(body=traceback.format_exc())
-        trans_time = '%.4f' % (time.time() - start_time)
-        log_message = '%s - - [%s] "%s %s" %s %s "%s" "%s" "%s" %s' % (
-            req.remote_addr,
-            time.strftime('%d/%b/%Y:%H:%M:%S +0000',
-                          time.gmtime()),
-            req.method, req.path,
-            res.status.split()[0], res.content_length or '-',
-            req.headers.get('x-trans-id', '-'),
-            req.referer or '-', req.user_agent or '-',
-            trans_time)
-        
-        self.logger.info(log_message)
+                res = jresponse('-1', 'internal server error', req,500)
+
         return res(env, start_response)
 
 

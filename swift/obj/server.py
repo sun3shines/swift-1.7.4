@@ -40,7 +40,7 @@ from swift.common.utils import mkdirs, normalize_timestamp, public, \
     storage_directory, hash_path, renamer, fallocate, \
     split_path, drop_buffer_cache, get_logger, write_pickle, \
     TRUE_VALUES, validate_device_partition
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.constraints import check_object_creation, check_mount, \
     check_float, check_utf8
 
@@ -206,7 +206,7 @@ class ObjectController(object):
                     account_response = conn.getresponse()
                     account_response.read()
                     if account_response.status == HTTP_NOT_FOUND:
-                        return HTTPNotFound(request=req)
+                        return jresponse('-1','not found',req,404)
                     elif not is_success(account_response.status):
                         self.logger.error(_('ERROR Account update failed '
                             'with %(ip)s:%(port)s/%(device)s (will retry '
@@ -231,17 +231,16 @@ class ObjectController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', request,400)
+         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
         
         if 'x-timestamp' not in request.headers or \
                     not check_float(request.headers['x-timestamp']):
             self.logger.increment('PUT.errors')
-            return HTTPBadRequest(body='Missing timestamp', request=request,
-                        content_type='text/plain')
-            
+            return jresponse('-1', 'Missing timestamp', request,400) 
+        
         error_response = check_object_creation(request, obj)
         if error_response:
             return error_response
@@ -265,15 +264,14 @@ class ObjectController(object):
                 try:
                     fallocate(fd, int(request.headers['content-length']))
                 except OSError:
-                    return HTTPInsufficientStorage(drive=device,
-                                                   request=request)
+                    return jresponse('-1', 'insufficient storage', request,507)
                     
             reader = request.environ['wsgi.input'].read
             for chunk in iter(lambda: reader(self.network_chunk_size), ''):
                 chunk = file_decrypt(chunk,metamode,storetype)
                 upload_size += len(chunk)
                 if time.time() > upload_expiration:
-                    return HTTPRequestTimeout(request=request)
+                    return jresponse('-1','request timeout',request,408)
                 etag.update(chunk)
                 while chunk:
                     written = os.write(fd, chunk)
@@ -326,10 +324,10 @@ class ObjectController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', request,400)
+        
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
         
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, keep_data_fp=True,
@@ -337,12 +335,12 @@ class ObjectController(object):
                         iter_hook=sleep)
         
         if file.is_deleted():
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         try:
             file_size = file.get_data_file_size()
         except (DiskFileError, DiskFileNotExist):
             file.quarantine()
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         response = Response(app_iter=file,
                         request=request, conditional_response=True)
@@ -364,23 +362,22 @@ class ObjectController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            resp = HTTPBadRequest(request=request)
-            resp.content_type = 'text/plain'
-            resp.body = str(err)
-            return resp
+            return jresponse('-1', 'bad request', request,400)
+        
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
+        
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if file.is_deleted():
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         try:
             file_size = file.get_data_file_size()
         except (DiskFileError, DiskFileNotExist):
             file.quarantine()
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         response = HTTPNoContent(request=request)
         response.etag = file.metadata['ETag']
@@ -395,23 +392,23 @@ class ObjectController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            resp = HTTPBadRequest(request=request)
-            resp.content_type = 'text/plain'
-            resp.body = str(err)
-            return resp
+            
+            return jresponse('-1', 'bad request', request,400)
+        
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
+        
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if file.is_deleted():
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         try:
             file_size = file.get_data_file_size()
         except (DiskFileError, DiskFileNotExist):
             file.quarantine()
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         hdata = json.dumps(file.metadata)
         response = Response(body=hdata,request=request)
@@ -427,11 +424,11 @@ class ObjectController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, e:
-            return HTTPBadRequest(body=str(e), request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', request,400)
         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
+        
         response_class = HTTPNoContent
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
@@ -454,8 +451,7 @@ class ObjectController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         # user_path = src_obj
         
@@ -465,7 +461,7 @@ class ObjectController(object):
         user_obj = 'user' + '/' + recycle_uuid
         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=req)
+            return jresponse('-1', 'insufficient storage', req,507) 
 
         src_file = DiskFile(self.devices, device, partition, account, src_container,
                         src_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
@@ -474,7 +470,7 @@ class ObjectController(object):
                         user_obj, self.logger, disk_chunk_size=self.disk_chunk_size,recycle_uuid=recycle_uuid)
     
         if src_file.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         if not user_file.is_deleted():
             user_file.unlinkold()
@@ -486,7 +482,7 @@ class ObjectController(object):
         
         
         if user_file.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
             
         user_file.metadata = src_file.metadata
         user_file.metadata['user_path'] = '/' + src_container+ '/' + src_obj
@@ -499,7 +495,7 @@ class ObjectController(object):
             user_file.put(fd, tmppath,user_file.metadata, extension='.meta')
             src_file.meta_del()
             
-        resp = HTTPNoContent(request=req)
+        resp = jresponse('0', '', req,204)
         return resp
     
     @public
@@ -509,25 +505,22 @@ class ObjectController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         try:
             dst_path = req.headers.get('x-copy-dst')
             dst_container, dst_obj = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
                         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
 
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
             self.logger.increment('PUT.errors')
-            return HTTPBadRequest(body='Missing timestamp', request=req,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', req,400)
             
         src_file = DiskFile(self.devices, device, partition, account, src_container,
                         src_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
@@ -536,7 +529,7 @@ class ObjectController(object):
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if src_file.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
         if not dst_file.is_deleted():
 
@@ -546,12 +539,12 @@ class ObjectController(object):
                 dst_file.unlink_data()
                 self.account_update(req, account, content_length, add_flag=False) 
             else:    
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409)
                                       
         dst_file.copy(src_file.data_file)
         
         if dst_file.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
         
         dst_file.metadata = src_file.metadata
         dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
@@ -560,7 +553,7 @@ class ObjectController(object):
             
         self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
         
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
     
     
     @public
@@ -571,8 +564,7 @@ class ObjectController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if 'recycle' == src_container:
             return self.MOVE_RECYCLE(req)
@@ -582,11 +574,10 @@ class ObjectController(object):
             dst_container, dst_obj = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
                         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
 
         src_file = DiskFile(self.devices, device, partition, account, src_container,
                         src_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
@@ -595,7 +586,7 @@ class ObjectController(object):
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if src_file.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
  
         if not dst_file.is_deleted():
 
@@ -605,19 +596,19 @@ class ObjectController(object):
                 dst_file.unlink_data()
                 self.account_update(req, account, content_length, add_flag=False) 
             else:    
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409)
  
         if dst_file.fhr_dir_is_deleted():
             if req.headers.get('x-fhr-dir') == 'True':
                 dst_file.create_dir_object(dst_file.fhr_path)
             else:
-                return HTTPNotFound()
+                return jresponse('-1', 'not found', req,404)
         
         dst_file.move(src_file.data_file)
         
          
         if dst_file.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
             
         dst_file.metadata = src_file.metadata
         dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
@@ -625,7 +616,7 @@ class ObjectController(object):
             dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
     
 
     @public
@@ -636,25 +627,22 @@ class ObjectController(object):
                 unquote(req.path), 4, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
         
         if 'recycle' != src_container:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
             
         try:
             dst_path = req.headers.get('x-move-dst')
             dst_container, dst_obj = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=req)
+            return jresponse('-1', 'bad request', req,400)
                         
         recycle_uuid = src_obj[5:]
         
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=req)
+            return jresponse('-1', 'insufficient storage', req,507)
 
         src_file = DiskMeta(self.devices, device, partition, account, src_container,
                         src_obj, self.logger, disk_chunk_size=self.disk_chunk_size,recycle_uuid=recycle_uuid)
@@ -663,10 +651,8 @@ class ObjectController(object):
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if src_file.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', req,404)
         
-        #if not dst_file.is_deleted():
-        #    return HTTPConflict(request=req)
         if not dst_file.is_deleted():
 
             overwrite = req.headers.get('X-Overwrite','false').lower()
@@ -675,7 +661,7 @@ class ObjectController(object):
                 dst_file.unlink_data()
                 self.account_update(req, account, content_length, add_flag=False) 
             else:    
-                return HTTPConflict(request=req)
+                return jresponse('-1', 'conflict', req,409)
         
         if dst_file.fhr_dir_is_deleted():
             dst_file.create_dir_object(dst_file.fhr_path)
@@ -683,7 +669,7 @@ class ObjectController(object):
         dst_file.move(src_file.data_file)
         
         if dst_file.is_deleted():
-            return HTTPConflict(request=req)
+            return jresponse('-1', 'conflict', req,409)
             
         dst_file.metadata = src_file.metadata
         dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
@@ -691,7 +677,7 @@ class ObjectController(object):
             dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
-        return HTTPCreated(request=req)
+        return jresponse('0', '', req,201)
     
     @public
     def POST(self, request):
@@ -704,32 +690,30 @@ class ObjectController(object):
             validate_device_partition(device, partition)
         except ValueError, err:
             self.logger.increment('POST.errors')
-            return HTTPBadRequest(body=str(err), request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', request,400) 
+        
         if 'x-timestamp' not in request.headers or \
                     not check_float(request.headers['x-timestamp']):
             self.logger.increment('POST.errors')
-            return HTTPBadRequest(body='Missing timestamp', request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'Missing timestamp', request,400) 
             
         
         if self.mount_check and not check_mount(self.devices, device):
             self.logger.increment('POST.errors')
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507)
         
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
 
         if file.is_deleted():
-            response_class = HTTPNotFound
-        else:
-            response_class = HTTPAccepted
+            return jresponse('-1', 'not found', request,404)
+        
         try:
             file_size = file.get_data_file_size()
             
         except (DiskFileError, DiskFileNotExist):
             file.quarantine()
-            return HTTPNotFound(request=request)
+            return jresponse('-1', 'not found', request,404)
         
         metadata = {'X-Timestamp': request.headers['x-timestamp']}
         
@@ -745,7 +729,7 @@ class ObjectController(object):
             file.put(fd, tmppath, metadata, extension='.meta')
         self.logger.timing_since('POST.timing', start_time)
         
-        return response_class(request=request)
+        return jresponse('0', '', request,202)
     
     def __call__(self, env, start_response):
         """WSGI Application entry point for the Swift Object Server."""
@@ -754,7 +738,7 @@ class ObjectController(object):
         self.logger.txn_id = req.headers.get('x-trans-id', None)
         
         if not check_utf8(req.path_info):
-            res = HTTPPreconditionFailed(body='Invalid UTF8')
+            res = jresponse('-1', 'invalid utf8', req,412)
         else:
             try:
                 # disallow methods which have not been marked 'public'
@@ -762,26 +746,16 @@ class ObjectController(object):
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
                 except AttributeError:
-                    res = HTTPMethodNotAllowed()
+                    res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
-                res = HTTPInternalServerError(body=traceback.format_exc())
+                res = jresponse('-1', 'InternalServerError', req,500)
+                 
         trans_time = time.time() - start_time
-        if self.log_requests:
-            log_line = '%s - - [%s] "%s %s" %s %s "%s" "%s" "%s" %.4f' % (
-                req.remote_addr,
-                time.strftime('%d/%b/%Y:%H:%M:%S +0000',
-                              time.gmtime()),
-                req.method, req.path, res.status.split()[0],
-                res.content_length or '-', req.referer or '-',
-                req.headers.get('x-trans-id', '-'),
-                req.user_agent or '-',
-                trans_time)
-            
-            self.logger.info(log_line)
+        
         if req.method in ('PUT', 'DELETE'):
             slow = self.slow - trans_time
             if slow > 0:

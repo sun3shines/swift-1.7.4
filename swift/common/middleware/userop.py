@@ -19,7 +19,7 @@ from webob import Request,Response
 from webob.exc import HTTPServerError,HTTPNoContent
 import uuid
 import time
-    
+from swift.common.bufferedhttp import jresponse
 from swift.common.utils import get_logger,split_path,json
 
 from swift.common.middleware.userdb import db_insert,db_update,db_delete,db_values
@@ -50,7 +50,7 @@ class UserOpMiddleware(object):
         
         elif 'DELETE_HISTORY' == req.GET.get('op'):
             db_delete(dbpath)
-            return HTTPNoContent(request=req)(env,start_response)
+            return jresponse('0','',req,204)(env,start_response)
         
         
         if 'register' != container:

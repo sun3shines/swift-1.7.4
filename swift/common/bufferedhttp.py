@@ -35,6 +35,8 @@ import traceback
 from eventlet.green.httplib import CONTINUE, HTTPConnection, HTTPMessage, \
     HTTPResponse, HTTPSConnection, _UNKNOWN
 
+from webob import Request, Response
+from swift.common.utils import json
 
 class BufferedHTTPResponse(HTTPResponse):
     """HTTPResponse class that buffers reading of headers"""
@@ -182,3 +184,25 @@ def http_connect_raw(ipaddr, port, method, path, headers=None,
             conn.putheader(header, str(value))
     conn.endheaders()
     return conn
+
+def jresponse(status,msg,req,status_int,headers=None,statusstr='',param=None):
+    
+    msg = msg.lower()
+    data = {'status':str(status),'msg':str(msg)}
+    
+    if param:
+        data.update(param)
+        
+    container_list = json.dumps(data)
+    if headers:
+        ret = Response(body=container_list, request=req,headers=headers)
+    else:
+        ret = Response(body=container_list, request=req)
+        
+    ret.content_type = 'application/json'
+    ret.charset = 'utf-8'
+    ret.status_int = status_int
+    if statusstr:
+        ret.status = statusstr
+    return ret
+    

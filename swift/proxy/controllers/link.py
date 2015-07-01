@@ -1,28 +1,5 @@
 # Copyright (c) 2010-2012 OpenStack, LLC.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# NOTE: swift_conn
-# You'll see swift_conn passed around a few places in this file. This is the
-# source httplib connection of whatever it is attached to.
-#   It is used when early termination of reading from the connection should
-# happen, such as when a range request is satisfied but there's still more the
-# source connection would like to send. To prevent having to read all the data
-# that could be left, the source connection can be .close() and then reads
-# commence to empty out any buffers.
-#   These shenanigans are to ensure all related objects can be garbage
-# collected. We've seen objects hang around forever otherwise.
 
 try:
     import simplejson as json
@@ -46,7 +23,8 @@ from webob import Request, Response
 
 from swift.common.utils import ContextPool, normalize_timestamp, TRUE_VALUES, \
     public
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
+
 from swift.common.constraints import  check_object_creation, \
     CONTAINER_LISTING_LIMIT, MAX_FILE_SIZE
 from swift.common.exceptions import ChunkReadTimeout, \
@@ -75,13 +53,11 @@ class LinkController(Controller):
     @delay_denial
     def CREATESYMLINK(self, req):
         
-        # env_comment(req.environ, 'create link')
-            
         (container_partition, containers,_) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         link_partition, link_nodes = self.app.link_ring.get_nodes(self.account_name, self.container_name, self.link_name)
         

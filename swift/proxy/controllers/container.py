@@ -25,6 +25,7 @@ from swift.common.constraints import MAX_CONTAINER_NAME_LENGTH
 from swift.common.http import HTTP_ACCEPTED
 from swift.proxy.controllers.base import Controller, delay_denial
 from swift.common.env_utils import *
+from swift.common.bufferedhttp import jresponse
 
 class ContainerController(Controller):
     """WSGI controller for container requests"""
@@ -45,7 +46,7 @@ class ContainerController(Controller):
 
         """Handler for HTTP GET/HEAD requests."""
         if not self.account_info(self.account_name)[1]:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404) 
         part, nodes = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         
         shuffle(nodes)
@@ -63,8 +64,6 @@ class ContainerController(Controller):
     @delay_denial
     def GET(self, req):
         
-        # env_comment(req.environ, 'get container content')
-            
         return self.GETorHEAD(req)
 
     @public
@@ -72,8 +71,6 @@ class ContainerController(Controller):
     def LISTDIR(self, req):
         """Handler for HTTP GET requests."""
         
-        # env_comment(req.environ, 'get container content')
-            
         old_method = req.method
         req.method = 'GET'
         req.headers['x-recursive']=str(req.GET.get('recursive','False')).lower()
@@ -85,19 +82,16 @@ class ContainerController(Controller):
     @delay_denial
     def HEAD(self, req):
         
-        # env_comment(req.environ, 'get container info')
-            
         return self.GETorHEAD(req)
 
     @public
     @delay_denial
     def META(self, req):
         
-        # env_comment(req.environ, 'get container info')
-            
+        
         """Handler for HTTP META requests."""
         if not self.account_info(self.account_name)[1]:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         part, nodes = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         
         shuffle(nodes)
@@ -115,20 +109,19 @@ class ContainerController(Controller):
     @public
     def PUT(self, req):
         """HTTP PUT request handler."""
-        
-        # env_comment(req.environ, 'create container')
-            
         if len(self.container_name) > MAX_CONTAINER_NAME_LENGTH:
-            resp = HTTPBadRequest(request=req)
-            resp.body = 'Container name length of %d longer than %d' % \
+            
+            respbody = 'Container name length of %d longer than %d' % \
                         (len(self.container_name), MAX_CONTAINER_NAME_LENGTH)
-            return resp
+            return jresponse('-1', respbody, req,400)
+        
         account_partition, accounts = \
             self.account_info(self.account_name,
                               autocreate=self.app.account_autocreate)
         
         if not accounts:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
+        
         container_partition, containers = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         headers = []
         for account in accounts:
@@ -149,14 +142,12 @@ class ContainerController(Controller):
     @public
     def POST(self, req):
         """HTTP POST request handler."""
-        
-        # env_comment(req.environ, 'update container')
             
         account_partition, accounts = \
             self.account_info(self.account_name,
                               autocreate=self.app.account_autocreate)
         if not accounts:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         container_partition, containers = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),
                    'x-trans-id': self.trans_id,
@@ -171,12 +162,9 @@ class ContainerController(Controller):
     @public
     def DELETE(self, req):
         """HTTP DELETE request handler."""
-        
-        # env_comment(req.environ, 'delete container')
-            
         account_partition, accounts = self.account_info(self.account_name)
         if not accounts:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         container_partition, containers = self.app.container_ring.get_nodes(self.account_name, self.container_name)
         headers = []
         for account in accounts:
@@ -189,7 +177,5 @@ class ContainerController(Controller):
         
         resp = self.make_requests(req, self.app.container_ring,
                     container_partition, 'DELETE', req.path_info, headers)
-        # Indicates no server had the container
-        if resp.status_int == HTTP_ACCEPTED:
-            return HTTPNotFound(request=req)
+        
         return resp

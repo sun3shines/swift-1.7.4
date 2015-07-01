@@ -35,6 +35,7 @@ from swift.common.constraints import MAX_OBJECT_NAME_LENGTH, \
 
 from swift.common.env_utils import *
 from swift.common.utils import split_path
+from swift.common.bufferedhttp import jresponse
 
 MAX_PATH_LENGTH = MAX_OBJECT_NAME_LENGTH + MAX_CONTAINER_NAME_LENGTH + 2
 
@@ -51,40 +52,10 @@ ACCEPTABLE_FORMATS = ['text/plain', 'application/json', 'application/xml',
 
 
 def get_response_body(data_format, data_dict, error_list):
-    """
-    Returns a properly formatted response body according to format.
-    :params data_format: resulting format
-    :params data_dict: generated data about results.
-    :params error_list: list of quoted filenames that failed
-    """
-    if data_format == 'text/plain':
-        output = ''
-        for key in sorted(data_dict.keys()):
-            output += '%s: %s\n' % (key, data_dict[key])
-        output += 'Errors:\n'
-        output += '\n'.join(
-            ['%s, %s' % (name, status)
-             for name, status in error_list])
-        return output
-    if data_format == 'application/json':
-        data_dict['Errors'] = error_list
-        return json.dumps(data_dict)
-    if data_format.endswith('/xml'):
-        output = '<?xml version="1.0" encoding="UTF-8"?>\n<delete>\n'
-        for key in sorted(data_dict.keys()):
-            xml_key = key.replace(' ', '_').lower()
-            output += '<%s>%s</%s>\n' % (xml_key, data_dict[key], xml_key)
-        output += '<errors>\n'
-        output += '\n'.join(
-            ['<object>'
-             '<name>%s</name><status>%s</status>'
-             '</object>' % (saxutils.escape(name), status) for
-             name, status in error_list])
-        output += '</errors>\n</delete>\n'
-        return output
-    raise HTTPNotAcceptable('Invalid output type')
-
-
+    
+    data_dict['Errors'] = error_list
+    return data_dict
+    
 class Batch(object):
     
 
@@ -93,14 +64,12 @@ class Batch(object):
         
     def batch_delete(self,req):
         
-        # env_comment(req.environ, 'batch delete')
-        
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
             return HTTPNotFound(request=req)
 
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
@@ -156,24 +125,22 @@ class Batch(object):
             failed_files)
         
         if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+            return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
             
         return HTTPBadRequest('Invalid batch delete.')
     
     def batch_copy(self,req):
-        
-        # env_comment(req.environ, 'batch copy')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
             return HTTPNotFound(request=req)
 
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
@@ -228,24 +195,23 @@ class Batch(object):
             failed_files)
         
         if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+            return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
             
         return HTTPBadRequest('Invalid batch delete.')
     
 
     def batch_move(self,req):
         
-        # env_comment(req.environ, 'batch copy')
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
             return HTTPNotFound(request=req)
 
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
@@ -254,12 +220,19 @@ class Batch(object):
         failed_file_response_type = HTTPBadRequest
 
         batchparams = json.loads(req.body)
+        
+        move_flag = False
+        move_resp = None
+        
         for param in batchparams.get('list'):
             
             pfrom = param.get('from').strip()
             pto = param.get('to').strip()
             pftype = param.get('ftype').strip()
             
+            if pfrom.find('_versions') != -1:
+                move_flag = True
+                
             new_env = req.environ.copy()    
             del(new_env['wsgi.input'])
             new_env['CONTENT_LENGTH'] = 0
@@ -284,6 +257,10 @@ class Batch(object):
             
             
             resp = new_req.get_response(self.app)
+            
+            if not move_resp:
+                move_resp = resp
+                
             if resp.status_int // 100 == 2:
                 success_count += 1
             elif resp.status_int == HTTP_NOT_FOUND:
@@ -301,26 +278,29 @@ class Batch(object):
              'Number Not Found': not_found_count},
             failed_files)
         
+        if move_flag and batchparams.get('list') and len(batchparams.get('list'))==2:
+            return move_resp
+        
         if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+            
+            return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
             
-        return HTTPBadRequest('Invalid batch delete.')
+        return HTTPBadRequest('Invalid batch move.')
         
     
     def batch_recycle(self,req):
         
-        # env_comment(req.environ, 'batch recycle')
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
             return HTTPNotFound(request=req)
 
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
@@ -376,24 +356,22 @@ class Batch(object):
             failed_files)
         
         if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+            return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
             
         return HTTPBadRequest('Invalid batch delete.')
     
     def batch_reset(self,req):
 
-        # env_comment(req.environ, 'batch reset')
-        
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
             return HTTPNotFound(request=req)
 
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
         
@@ -401,12 +379,18 @@ class Batch(object):
         success_count = not_found_count = 0
         failed_file_response_type = HTTPBadRequest
 
+        rcyc_flag = False
+        rcy_resp = None
+        
         batchparams = json.loads(req.body)
         for param in batchparams.get('list'):
             
             ppath = param.get('path').strip()
             pftype = param.get('ftype').strip()
             
+            if ppath.find('/recycle/meta') != -1:
+                rcyc_flag = True
+                    
             new_env = req.environ.copy()    
             del(new_env['wsgi.input'])
             new_env['CONTENT_LENGTH'] = 0
@@ -426,6 +410,9 @@ class Batch(object):
             
             
             resp = new_req.get_response(self.app)
+            if not rcy_resp:
+                rcy_resp = resp
+                
             if resp.status_int // 100 == 2:
                 success_count += 1
             elif resp.status_int == HTTP_NOT_FOUND:
@@ -443,12 +430,15 @@ class Batch(object):
              'Number Not Found': not_found_count},
             failed_files)
         
-        if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+        if rcyc_flag:
+            return rcy_resp
         
+        if (success_count or not_found_count) and not failed_files:
+            return jresponse('0','',req,200,param=resp_body)
+            
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
             
         return HTTPBadRequest('Invalid batch delete.')
     

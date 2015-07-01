@@ -36,7 +36,7 @@ from webob.exc import status_map
 from webob import Request, Response
 
 from swift.common.utils import normalize_timestamp, TRUE_VALUES, public,split_path
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.constraints import MAX_ACCOUNT_NAME_LENGTH
 from swift.common.exceptions import ChunkReadTimeout, ConnectionTimeout
 from swift.common.http import is_informational, is_success, is_redirection, \
@@ -395,9 +395,6 @@ class Controller(object):
     def best_response(self, req, statuses, reasons, bodies, server_type,
                       etag=None,jsondata=None):
         """
-        Given a list of responses from several servers, choose the best to
-        return to the API.
-
         :param req: webob.Request object
         :param statuses: list of statuses returned
         :param reasons: list of reasons for each status
@@ -420,10 +417,9 @@ class Controller(object):
                     resp.body = bodies[status_index]
                     
                     return resp
-        self.app.logger.error(_('%(type)s returning 503 for %(statuses)s'),
-                              {'type': server_type, 'statuses': statuses})
+        
         resp.status = '503 Internal Server Error'
-        return resp
+        return jresponse('-1', 'internal server error', req,503)
 
     @public
     def GET(self, req):

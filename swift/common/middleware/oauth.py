@@ -33,6 +33,14 @@ from swift.common.utils import cache_from_env, get_logger, get_remote_client, \
     
 from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
 from swift.common.oauth.bridge import *
+import hashlib
+
+def strmd5sum(src):
+    
+    myMd5 = hashlib.md5()
+    myMd5.update(src)
+    myMd5_Digest = myMd5.hexdigest()
+    return myMd5_Digest
 
 class OAuth(object):
 
@@ -238,19 +246,22 @@ class OAuth(object):
         param = json.loads(req.body)
         user_email = param['email']
         user_passwd = param['password']
-        
+    
         if not user_email or not user_passwd:
             return ['email or password error.\n']
         
         account_user = user_email.replace('@','').replace('.','')
-
+        
+        datastr = user_passwd+account_user
+        md5_account_user = strmd5sum(datastr)
+        
         memcache_client = cache_from_env(req.environ)
         if not memcache_client:
             raise Exception('Memcache required')
         
         token = None
         # get token by memcache by account_user
-        memcache_user_key = '%s/user/%s' % (self.reseller_prefix, account_user)
+        memcache_user_key = '%s/user/%s' % (self.reseller_prefix, md5_account_user)
         candidate_token = memcache_client.get(memcache_user_key)
         if candidate_token:
             memcache_token_key = '%s/token/%s' % (self.reseller_prefix, candidate_token)
@@ -278,7 +289,7 @@ class OAuth(object):
             memcache_client.set(memcache_token_key, cached_auth_data, timeout=expires_in)
             
             # get token by oauth server by account_user
-            memcache_user_key = '%s/user/%s' % (self.reseller_prefix, account_user)
+            memcache_user_key = '%s/user/%s' % (self.reseller_prefix, md5_account_user)
             memcache_client.set(memcache_user_key, token,timeout=expires_in)
             
         oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent':account_user})

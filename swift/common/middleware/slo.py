@@ -18,6 +18,7 @@ from swift.common.middleware.bulk import get_response_body, \
 
 from swift.common.utils import split_path
 from swift.common.env_utils import *
+from swift.common.bufferedhttp import jresponse
 
 def parse_input(raw_data):
     
@@ -57,8 +58,6 @@ class StaticLargeObject(object):
             app, {'max_deletes_per_request': self.max_manifest_segments})
 
     def handle_multipart_put(self, req):
-        
-        # env_comment(req.environ, 'merge files')
                 
         try:
             vrs, account, container, obj = split_path(req.path,1, 4, True)
@@ -82,7 +81,7 @@ class StaticLargeObject(object):
                 'Number segments must be <= %d' % self.max_manifest_segments)
             
         total_size = 0
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             out_content_type = 'text/plain'
         data_for_storage = []
@@ -126,7 +125,7 @@ class StaticLargeObject(object):
         if problem_segments:
             resp_body = get_response_body(
                 out_content_type, {}, problem_segments)
-            raise HTTPBadRequest(resp_body, content_type=out_content_type)
+            raise jresponse('-1','badrequest',req,400,param=resp_body)
         env = req.environ
 
         
@@ -140,8 +139,6 @@ class StaticLargeObject(object):
 
     def handle_multipart_delete(self, req):
         
-        # env_comment(req.environ, 'delete merged file')
-            
         new_env = req.environ.copy()
         new_env['REQUEST_METHOD'] = 'GET'
         del(new_env['wsgi.input'])

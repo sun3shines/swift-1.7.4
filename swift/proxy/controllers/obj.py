@@ -37,7 +37,7 @@ from webob import Request, Response
 from swift.common.utils import ContextPool, normalize_timestamp, TRUE_VALUES, \
     public,config_true_value
     
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.constraints import  check_object_creation, \
     CONTAINER_LISTING_LIMIT, MAX_FILE_SIZE,check_metadata
 from swift.common.exceptions import ChunkReadTimeout, \
@@ -294,8 +294,7 @@ class ObjectController(Controller):
                     except ValueError:
                         listing = []
                 else:
-                    return HTTPServiceUnavailable(
-                        "Unable to load SLO manifest", request=req)
+                    return jresponse('-1',"Unable to load SLO manifest", req,503)
 
         if large_object:
             if len(listing_page1) >= CONTAINER_LISTING_LIMIT:
@@ -324,8 +323,7 @@ class ObjectController(Controller):
                         etag = md5(
                             ''.join(o['hash'] for o in listing)).hexdigest()
                     except KeyError:
-                        return HTTPServerError('Invalid Manifest File',
-                                               request=req)
+                        return jresponse('-1', 'Invalid Manifest File', req,500)
 
                 else:
                     content_length = 0
@@ -352,8 +350,6 @@ class ObjectController(Controller):
     def HEAD(self, req):
         """Handler for HTTP HEAD requests."""
         
-        # env_comment(req.environ, 'get file info')
-            
         return self.GETorHEAD(req)
 
 
@@ -362,16 +358,12 @@ class ObjectController(Controller):
     def GET(self, req):
         """Handler for HTTP GET requests."""
         
-        # env_comment(req.environ, 'get file content')
-            
         return self.GETorHEAD(req)
 
     @public
     @delay_denial
     def META(self, req):
         
-        # env_comment(req.environ, 'get file info')
-            
         part, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name,self.object_name)
         
         shuffle(nodes)
@@ -419,14 +411,13 @@ class ObjectController(Controller):
     @delay_denial
     def PUT(self, req):
         
-        # env_comment(req.environ, 'create file')
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         (container_partition, containers,object_versions ) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         
         delete_at_part = delete_at_nodes = None
@@ -460,10 +451,10 @@ class ObjectController(Controller):
                 move_resp = self.MOVE_VERSION(move_req)
                 if is_client_error(move_resp.status_int):
                     # missing container or bad permissions
-                    return HTTPPreconditionFailed(request=req)
+                    return jresponse('-1', 'bad permissions', req,412)
                 elif not is_success(move_resp.status_int):
                     # could not copy the data, bail
-                    return HTTPServiceUnavailable(request=req)
+                    return jresponse('-1', 'ServiceUnavailable', req,503)
                 
         reader = req.environ['wsgi.input'].read
         data_source = iter(lambda: reader(self.app.client_chunk_size), '')
@@ -496,7 +487,7 @@ class ObjectController(Controller):
                 _('Object PUT returning 503, %(conns)s/%(nodes)s '
                 'required connections'),
                 {'conns': len(conns), 'nodes': len(nodes) // 2 + 1})
-            return HTTPServiceUnavailable(request=req)
+            return jresponse('-1', 'ServiceUnavailable', req,503)
         
         bytes_transferred = 0
         try:
@@ -514,7 +505,7 @@ class ObjectController(Controller):
                             break
                     bytes_transferred += len(chunk)
                     if bytes_transferred > MAX_FILE_SIZE:
-                        return HTTPRequestEntityTooLarge(request=req)
+                        return jresponse('-1', 'RequestEntityTooLarge', req,413)
                     for conn in list(conns):
                         if not conn.failed:
                             conn.queue.put(chunk)
@@ -524,7 +515,7 @@ class ObjectController(Controller):
                         self.app.logger.error(_('Object PUT exceptions during'
                             ' send, %(conns)s/%(nodes)s required connections'),
                             {'conns': len(conns), 'nodes': len(nodes) / 2 + 1})
-                        return HTTPServiceUnavailable(request=req)
+                        return jresponse('-1', 'ServiceUnavailable', req,503)
                 for conn in conns:
                     if conn.queue.unfinished_tasks:
                         conn.queue.join()
@@ -532,16 +523,17 @@ class ObjectController(Controller):
         except ChunkReadTimeout, err:
             self.app.logger.warn(
                 _('ERROR Client read timeout (%ss)'), err.seconds)
-            return HTTPRequestTimeout(request=req)
+            return jresponse('-1', 'RequestTimeout', req,408)
         except (Exception, Timeout):
             self.app.logger.exception(
                 _('ERROR Exception causing client disconnect'))
-            return HTTPClientDisconnect(request=req)
+            return jresponse('-1', 'ClientDisconnect', req,499)
         if req.content_length and bytes_transferred < req.content_length:
             req.client_disconnect = True
             self.app.logger.warn(
                 _('Client disconnected without sending enough data'))
-            return HTTPClientDisconnect(request=req)
+            return jresponse('-1', 'ClientDisconnect', req,499)
+        
         statuses = []
         reasons = []
         bodies = []
@@ -572,7 +564,7 @@ class ObjectController(Controller):
         if len(etags) > 1:
             self.app.logger.error(
                 _('Object servers returned %s mismatched etags'), len(etags))
-            return HTTPServerError(request=req)
+            return jresponse('-1', 'ServerError', req,500)
         etag = len(etags) and etags.pop() or None
         
         while len(statuses) < len(nodes):
@@ -590,14 +582,13 @@ class ObjectController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         
-        # env_comment(req.environ, 'delete file')
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name)
                
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
         
         
@@ -636,7 +627,7 @@ class ObjectController(Controller):
             except ListingIterNotAuthorized, err:
                 return err.aresp
             except ListingIterError:
-                return HTTPServerError(request=req)
+                return jresponse('-1','ServerERROR',req,500)
             if last_item:
                 
                 move_path = '/' + self.account_name + '/' + \
@@ -647,9 +638,9 @@ class ObjectController(Controller):
                 move_resp = self.MOVE_VERSION(creq)
                 
                 if is_client_error(move_resp.status_int):
-                    return HTTPPreconditionFailed(request=req)
+                    return jresponse('-1', 'client error', req,412)
                 elif not is_success(move_resp.status_int):
-                    return HTTPServiceUnavailable(request=req)
+                    return jresponse('-1', 'ServiceUnavailable', req,503)
                 
         return resp
 
@@ -657,8 +648,6 @@ class ObjectController(Controller):
     @public
     def COPY(self,req):    
         
-        # env_comment(req.environ, 'copy file')
-            
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         
@@ -666,7 +655,7 @@ class ObjectController(Controller):
                 account_autocreate=self.app.account_autocreate)
         
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         object_partition, object_nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
         
@@ -700,13 +689,11 @@ class ObjectController(Controller):
     @public
     def MOVE(self,req):    
     
-        # env_comment(req.environ, 'move file')
-            
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         object_partition, object_nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
         
@@ -747,7 +734,8 @@ class ObjectController(Controller):
             except ListingIterNotAuthorized, err:
                 return err.aresp
             except ListingIterError:
-                return HTTPServerError(request=req)
+                return jresponse('-1','ServerERROR',req,500)
+               
             if last_item:
                 
                 move_path = '/' + self.account_name + '/' + \
@@ -758,9 +746,9 @@ class ObjectController(Controller):
                 move_resp = self.MOVE_VERSION(creq)
                 
                 if is_client_error(move_resp.status_int):
-                    return HTTPPreconditionFailed(request=req)
+                    return jresponse('-1', 'client error', req,412)
                 elif not is_success(move_resp.status_int):
-                    return HTTPServiceUnavailable(request=req)
+                    return jresponse('-1', 'ServiceUnavailable', req,503) 
                 
         return resp
     
@@ -772,7 +760,7 @@ class ObjectController(Controller):
                 account_autocreate=self.app.account_autocreate)
         
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         object_partition, object_nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
         
@@ -802,8 +790,6 @@ class ObjectController(Controller):
     @delay_denial
     def POST(self, req):
         
-        # env_comment(req.environ, 'update file attr')
-           
         error_response = check_metadata(req, 'object')
         if error_response:
             return error_response
@@ -812,7 +798,7 @@ class ObjectController(Controller):
                 account_autocreate=self.app.account_autocreate)
             
         if not containers:
-            return HTTPNotFound(request=req)
+            return jresponse('-1', 'not found', req,404)
         
         partition, nodes = self.app.object_ring.get_nodes(self.account_name, self.container_name, self.object_name)
         

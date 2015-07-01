@@ -1,28 +1,5 @@
 # Copyright (c) 2010-2012 OpenStack, LLC.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-# implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
-# NOTE: swift_conn
-# You'll see swift_conn passed around a few places in this file. This is the
-# source httplib connection of whatever it is attached to.
-#   It is used when early termination of reading from the connection should
-# happen, such as when a range request is satisfied but there's still more the
-# source connection would like to send. To prevent having to read all the data
-# that could be left, the source connection can be .close() and then reads
-# commence to empty out any buffers.
-#   These shenanigans are to ensure all related objects can be garbage
-# collected. We've seen objects hang around forever otherwise.
 
 import time
 from urllib import unquote
@@ -35,7 +12,7 @@ from swift.common.utils import normalize_timestamp, public
 from swift.common.constraints import MAX_ACCOUNT_NAME_LENGTH
 from swift.common.http import is_success, HTTP_NOT_FOUND
 from swift.proxy.controllers.base import Controller
-
+from swift.common.bufferedhttp import jresponse
 from swift.common.env_utils import *
 
 class AccountController(Controller):
@@ -48,17 +25,15 @@ class AccountController(Controller):
 
     def GETorHEAD(self, req):
         """Handler for HTTP GET/HEAD requests."""
-        
         partition, nodes = self.app.account_ring.get_nodes(self.account_name)
         shuffle(nodes)
         resp = self.GETorHEAD_base(req, _('Account'), partition, nodes,
                 req.path_info.rstrip('/'), len(nodes))
         if resp.status_int == HTTP_NOT_FOUND and self.app.account_autocreate:
             if len(self.account_name) > MAX_ACCOUNT_NAME_LENGTH:
-                resp = HTTPBadRequest(request=req)
-                resp.body = 'Account name length of %d longer than %d' % \
-                            (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
-                return resp
+                respbody = 'Account name length of %d longer than %d' % (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
+                return jresponse('-1', respbody, req,400)
+                
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
                        'Connection': 'close'}
@@ -78,8 +53,6 @@ class AccountController(Controller):
     def META(self, req):
         """Handler for HTTP GET/HEAD requests."""
         
-        # env_comment(req.environ, 'get account attr')
-            
         partition, nodes = self.app.account_ring.get_nodes(self.account_name)
         shuffle(nodes)
         resp = self.META_base(req, _('Account'), partition, nodes,
@@ -87,10 +60,11 @@ class AccountController(Controller):
         
         if resp.status_int == HTTP_NOT_FOUND and self.app.account_autocreate:
             if len(self.account_name) > MAX_ACCOUNT_NAME_LENGTH:
-                resp = HTTPBadRequest(request=req)
-                resp.body = 'Account name length of %d longer than %d' % \
+                
+                respbody = 'Account name length of %d longer than %d' % \
                             (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
-                return resp
+                return jresponse('-1', respbody, req,400)
+            
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
                        'Connection': 'close'}
@@ -112,13 +86,14 @@ class AccountController(Controller):
     def PUT(self, req):
         """HTTP PUT request handler."""
         if not self.app.allow_account_management:
-            return HTTPMethodNotAllowed(request=req)
+            return jresponse('-1','method not allowed',req,405)
         
         if len(self.account_name) > MAX_ACCOUNT_NAME_LENGTH:
-            resp = HTTPBadRequest(request=req)
-            resp.body = 'Account name length of %d longer than %d' % \
+            
+            respbody = 'Account name length of %d longer than %d' % \
                         (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
-            return resp
+            return jresponse('-1', respbody, req,400)
+        
         account_partition, accounts = self.app.account_ring.get_nodes(self.account_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),
                    'x-trans-id': self.trans_id,
@@ -133,8 +108,6 @@ class AccountController(Controller):
     def POST(self, req):
         """HTTP POST request handler."""
         
-        # env_comment(req.environ, 'update account attr')
-            
         account_partition, accounts = self.app.account_ring.get_nodes(self.account_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),
                    'X-Trans-Id': self.trans_id,
@@ -146,10 +119,11 @@ class AccountController(Controller):
             [headers] * len(accounts))
         if resp.status_int == HTTP_NOT_FOUND and self.app.account_autocreate:
             if len(self.account_name) > MAX_ACCOUNT_NAME_LENGTH:
-                resp = HTTPBadRequest(request=req)
-                resp.body = 'Account name length of %d longer than %d' % \
+                
+                respbody = 'Account name length of %d longer than %d' % \
                             (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
-                return resp
+                return jresponse('-1', respbody, req,400)
+            
             resp = self.make_requests(
                 Request.blank('/v1/' + self.account_name),
                 self.app.account_ring, account_partition, 'PUT',
@@ -164,7 +138,7 @@ class AccountController(Controller):
     def DELETE(self, req):
         """HTTP DELETE request handler."""
         if not self.app.allow_account_management:
-            return HTTPMethodNotAllowed(request=req)
+            return jresponse('-1', 'method not allowed', req,405)
         account_partition, accounts = self.app.account_ring.get_nodes(self.account_name)
         headers = {'X-Timestamp': normalize_timestamp(time.time()),
                    'X-Trans-Id': self.trans_id,

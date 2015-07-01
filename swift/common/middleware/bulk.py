@@ -32,7 +32,7 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
     HTTP_NOT_FOUND
 from swift.common.constraints import MAX_OBJECT_NAME_LENGTH, \
     MAX_CONTAINER_NAME_LENGTH
-
+from swift.common.bufferedhttp import jresponse
 
 from swift.common.utils import split_path
 
@@ -51,39 +51,9 @@ ACCEPTABLE_FORMATS = ['text/plain', 'application/json', 'application/xml',
 
 
 def get_response_body(data_format, data_dict, error_list):
-    """
-    Returns a properly formatted response body according to format.
-    :params data_format: resulting format
-    :params data_dict: generated data about results.
-    :params error_list: list of quoted filenames that failed
-    """
-    if data_format == 'text/plain':
-        output = ''
-        for key in sorted(data_dict.keys()):
-            output += '%s: %s\n' % (key, data_dict[key])
-        output += 'Errors:\n'
-        output += '\n'.join(
-            ['%s, %s' % (name, status)
-             for name, status in error_list])
-        return output
-    if data_format == 'application/json':
-        data_dict['Errors'] = error_list
-        return json.dumps(data_dict)
-    if data_format.endswith('/xml'):
-        output = '<?xml version="1.0" encoding="UTF-8"?>\n<delete>\n'
-        for key in sorted(data_dict.keys()):
-            xml_key = key.replace(' ', '_').lower()
-            output += '<%s>%s</%s>\n' % (xml_key, data_dict[key], xml_key)
-        output += '<errors>\n'
-        output += '\n'.join(
-            ['<object>'
-             '<name>%s</name><status>%s</status>'
-             '</object>' % (saxutils.escape(name), status) for
-             name, status in error_list])
-        output += '</errors>\n</delete>\n'
-        return output
-    raise HTTPNotAcceptable('Invalid output type')
-
+    
+    data_dict['Errors'] = error_list
+    return data_dict
 
 class Bulk(object):
 
@@ -163,7 +133,7 @@ class Bulk(object):
         if incoming_format and not incoming_format.startswith('text/plain'):
             # For now only accept newline separated object names
             return HTTPNotAcceptable(request=req)
-        out_content_type = req.accept.best_match(ACCEPTABLE_FORMATS)
+        out_content_type = 'application/json'
         if not out_content_type:
             return HTTPNotAcceptable(request=req)
 
@@ -208,10 +178,11 @@ class Bulk(object):
              'Number Not Found': not_found_count},
             failed_files)
         if (success_count or not_found_count) and not failed_files:
-            return HTTPOk(resp_body, content_type=out_content_type)
+            return jresponse('0','',req,200,param=resp_body)
+        
         if failed_files:
             return failed_file_response_type(
-                resp_body, content_type=out_content_type)
+                json.dumps(resp_body), content_type=out_content_type)
         return HTTPBadRequest('Invalid bulk delete.')
 
     @wsgify

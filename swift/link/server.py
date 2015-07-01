@@ -39,7 +39,7 @@ from swift.common.utils import mkdirs, normalize_timestamp, public, \
     storage_directory, hash_path, renamer, fallocate, \
     split_path, drop_buffer_cache, get_logger, write_pickle, \
     TRUE_VALUES, validate_device_partition
-from swift.common.bufferedhttp import http_connect
+from swift.common.bufferedhttp import http_connect,jresponse
 from swift.common.constraints import check_object_creation, check_mount, \
     check_float, check_utf8
 
@@ -126,20 +126,17 @@ class LinkController(object):
                 split_path(unquote(request.path), 5, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), request=request,
-                        content_type='text/plain')
+            return jresponse('-1', 'bad request', request,400) 
     
         try:
             dst_path = request.headers.get('x-link-dst')
             dst_container, dst_link = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
-            return HTTPBadRequest(body=str(err), content_type='text/plain',
-                                request=request)
-            
+            return jresponse('-1', 'bad request', request,400) 
             
         if self.mount_check and not check_mount(self.devices, device):
-            return HTTPInsufficientStorage(drive=device, request=request)
+            return jresponse('-1', 'insufficient storage', request,507) 
         
        
         src_file = DiskLink(self.devices, device, partition, account, src_container,
@@ -148,17 +145,17 @@ class LinkController(object):
                         dst_link)
         
         if src_file.is_deleted():
-            return HTTPNotFound()
+            return jresponse('-1', 'not found', request,404) 
         
         if not dst_file.is_deleted():
-            return HTTPConflict(request=request)
+            return jresponse('-1', 'conflict', request,409) 
                                 
         dst_file.link(src_file.data_file)
         
         if dst_file.is_deleted():
-            return HTTPConflict(request=request)
+            return jresponse('-1', 'conflict', request,409) 
             
-        resp = HTTPCreated(request=request)
+        resp = jresponse('0', '', request,201) 
         return resp
 
 
@@ -173,7 +170,7 @@ class LinkController(object):
         self.logger.txn_id = req.headers.get('x-trans-id', None)
         
         if not check_utf8(req.path_info):
-            res = HTTPPreconditionFailed(body='Invalid UTF8')
+            res =jresponse('-1', 'Invalid UTF8', req,412) 
         else:
             try:
                 # disallow methods which have not been marked 'public'
@@ -181,26 +178,15 @@ class LinkController(object):
                     method = getattr(self, req.method)
                     getattr(method, 'publicly_accessible')
                 except AttributeError:
-                    res = HTTPMethodNotAllowed()
+                    res = jresponse('-1', 'method not allowed', req,405) 
                 else:
                     res = method(req)
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
-                res = HTTPInternalServerError(body=traceback.format_exc())
+                res = jresponse('-1', 'InternalServerError', req,500)
         trans_time = time.time() - start_time
-        if self.log_requests:
-            log_line = '%s - - [%s] "%s %s" %s %s "%s" "%s" "%s" %.4f' % (
-                req.remote_addr,
-                time.strftime('%d/%b/%Y:%H:%M:%S +0000',
-                              time.gmtime()),
-                req.method, req.path, res.status.split()[0],
-                res.content_length or '-', req.referer or '-',
-                req.headers.get('x-trans-id', '-'),
-                req.user_agent or '-',
-                trans_time)
-            
-            self.logger.info(log_line)
+        
         if req.method in ('PUT', 'DELETE'):
             slow = self.slow - trans_time
             if slow > 0:
