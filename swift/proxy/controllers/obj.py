@@ -50,6 +50,9 @@ from swift.common.http import is_success, is_client_error, HTTP_CONTINUE, \
 from swift.proxy.controllers.base import Controller, delay_denial
 from swift.common.env_utils import *
 
+from swift.common.common.swob import Response as HResponse
+from swift.common.common.swob import Range
+
 def segment_listing_iter(listing):
     listing = iter(listing)
     while True:
@@ -113,8 +116,10 @@ class SegmentedIterable(object):
             path = '/%s/%s/%s' % (self.controller.account_name, container, obj)
             req = Request.blank(path)
             if self.seek:
-                req.range = 'bytes=%s-' % self.seek
+                
+                req.headers['range'] = 'bytes=%s-' % self.seek
                 self.seek = 0
+                
             if not self.is_slo and self.segment > \
                     self.controller.app.rate_limit_after_segment:
                 sleep(max(self.next_get_time - time.time(), 0))
@@ -202,6 +207,66 @@ class SegmentedIterable(object):
             raise
 
 
+    def app_iter_range(self, start, stop):
+        """
+        Non-standard iterator function for use with Swob in serving Range
+        requests more quickly. This will skip over segments and do a range
+        request on the first segment to return data from, if needed.
+
+        :param start: The first byte (zero-based) to return. None for 0.
+        :param stop: The last byte (zero-based) to return. None for end.
+        """
+        try:
+            if start:
+                self.segment_peek = self.listing.next()
+                while start >= self.position + self.segment_peek['bytes']:
+                    self.segment += 1
+                    self.position += self.segment_peek['bytes']
+                    self.segment_peek = self.listing.next()
+                self.seek = start - self.position
+            else:
+                start = 0
+            if stop is not None:
+                length = stop - start
+            else:
+                length = None
+            for chunk in self:
+                if length is not None:
+                    length -= len(chunk)
+                    if length < 0:
+                        # Chop off the extra:
+                        yield chunk[:length]
+                        break
+                yield chunk
+            # See NOTE: swift_conn at top of file about this.
+            if self.segment_iter_swift_conn:
+                try:
+                    self.segment_iter_swift_conn.close()
+                except Exception:
+                    pass
+                self.segment_iter_swift_conn = None
+            if self.segment_iter:
+                try:
+                    while self.segment_iter.next():
+                        pass
+                except Exception:
+                    pass
+                self.segment_iter = None
+        except StopIteration:
+            raise
+        except (Exception, Timeout), err:
+            if not getattr(err, 'swift_logged', False):
+                self.controller.app.logger.exception(_(
+                    'ERROR: While processing manifest '
+                    '/%(acc)s/%(cont)s/%(obj)s'),
+                    {'acc': self.controller.account_name,
+                     'cont': self.controller.container_name,
+                     'obj': self.controller.object_name})
+                err.swift_logged = True
+                self.response.status_int = HTTP_SERVICE_UNAVAILABLE
+            raise
+
+
 class ObjectController(Controller):
     """WSGI controller for object requests."""
     server_type = 'Object'
@@ -265,9 +330,12 @@ class ObjectController(Controller):
                 req.path_info, len(nodes))
         
         large_object = None
+        range_flag = False
+        
         if config_true_value(resp.headers.get('x-static-large-object')) and \
                 req.GET.get('multipart-manifest') != 'get' and \
                 self.app.allow_static_large_object:
+            range_flag = True
             large_object = 'SLO'
             listing_page1 = ()
             listing = []
@@ -298,8 +366,12 @@ class ObjectController(Controller):
 
         if large_object:
             if len(listing_page1) >= CONTAINER_LISTING_LIMIT:
-                resp = Response(headers=resp.headers, request=req,
-                                conditional_response=True)
+                hrange = None
+                if req.headers.get('range') and range_flag:
+                    hrange = Range(req.headers.get('range'))
+                    
+                resp = HResponse(headers=resp.headers, request=req,
+                                conditional_response=True,range=hrange)
                 if req.method == 'HEAD':
                     
                     def head_response(environ, start_response):
@@ -329,8 +401,13 @@ class ObjectController(Controller):
                     content_length = 0
                     
                     etag = md5().hexdigest()
-                resp = Response(headers=resp.headers, request=req,
-                                conditional_response=True)
+                
+                hrange = None
+                if req.headers.get('range') and range_flag:
+                    hrange = Range(req.headers.get('range'))
+                resp = HResponse(headers=resp.headers, request=req,
+                                conditional_response=True,range=hrange)
+                
                 resp.app_iter = SegmentedIterable(
                     self, lcontainer, listing, resp,
                     is_slo=(large_object == 'SLO'))

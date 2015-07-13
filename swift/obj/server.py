@@ -59,6 +59,9 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
 from swift.common.utils import get_uuid,json
 from swift.lib.utils import file_decrypt
 
+from swift.common.common.swob import Response as HResponse
+from swift.common.common.swob import Range
+
 DATADIR = 'objects'
 ASYNCDIR = 'async_pending'
 PICKLE_PROTOCOL = 2
@@ -112,6 +115,26 @@ class SwiftFile(object):
         finally:
             self.close()
 
+    def app_iter_range(self, start, stop):
+        """Returns an iterator over the data file for range (start, stop)"""
+        if start or start == 0:
+            self.fp.seek(start)
+        if stop is not None:
+            length = stop - start
+        else:
+            length = None
+        try:
+            for chunk in self:
+                if length is not None:
+                    length -= len(chunk)
+                    if length < 0:
+                        # Chop off the extra:
+                        yield chunk[:length]
+                        break
+                yield chunk
+        finally:
+            self.close()
+                
     def _handle_close_quarantine(self):
         
         try:
@@ -317,7 +340,8 @@ class ObjectController(object):
 
     @public
     def GET(self, request):
-        
+        # request is global , can not be modify
+        # response can be modify
         start_time = time.time()
         try:
             device, partition, account, container, obj = \
@@ -341,17 +365,24 @@ class ObjectController(object):
         except (DiskFileError, DiskFileNotExist):
             file.quarantine()
             return jresponse('-1', 'not found', request,404)
-        
-        response = Response(app_iter=file,
-                        request=request, conditional_response=True)
+
+        range = None
+        if request.headers.get('range') and not file.metadata.get('X-Static-Large-Object'):
+            # range for plain file,not slo
+            range = Range(request.headers.get('range'))
+            
+        response = HResponse(app_iter=file,
+                        request=request, conditional_response=True,range=range)
     
         for key, value in file.metadata.iteritems():
             if key.lower().startswith('x-object-meta-') or \
                     key.lower() in self.allowed_headers:
                 response.headers[key] = value
     
+        
         response.content_length = file_size
         response.etag = file.metadata['ETag']
+        
         return request.get_response(response)
 
     @public
