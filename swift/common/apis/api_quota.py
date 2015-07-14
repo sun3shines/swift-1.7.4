@@ -75,6 +75,17 @@ def list_recycle_env(env):
     param = qsparam(qs)     
     param['op'] = 'LIST'
     param['ftype'] = 'd'
+    
+    if param.get('start') or param.get('limit'):
+        start = param.get('start')
+        limit = param.get('limit')
+        if not start:
+            start = '0'
+        if not limit:
+            limit = ''
+        param['start'] = start
+        param['limit'] = limit
+        
     env['QUERY_STRING'] = newparamqs(param)
     
     return True

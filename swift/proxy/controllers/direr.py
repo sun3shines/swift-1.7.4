@@ -61,6 +61,11 @@ class DirerController(Controller):
         
         req.headers['x-ftype'] = req.GET['ftype']
         
+        if req.GET.get('start'):
+            req.headers['x-start'] = req.GET.get('start')
+            if req.GET.get('limit'):
+                req.headers['x-limit'] = req.GET.get('limit')
+                
         resp = self.GETorHEAD_base(req, _('Direr'), part, nodes,
                 req.path_info, len(nodes))
 

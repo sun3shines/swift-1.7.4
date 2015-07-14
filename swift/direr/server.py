@@ -428,7 +428,12 @@ class DirerController(object):
             
         out_content_type = 'application/json'
         
-        container_list = broker.list_objects_meta_iter()
+        start = limit= None
+        start = req.headers.get('x-start')
+        limit = req.headers.get('x-limit')
+        
+        container_list = broker.list_objects_meta_iter(start,limit)
+        
         if out_content_type == 'application/json':
             data = []
             for objdata in container_list:
