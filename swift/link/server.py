@@ -144,6 +144,9 @@ class LinkController(object):
         dst_file = DiskLink(self.devices, device, partition, account, dst_container,
                         dst_link)
         
+        if not dst_file.cnt_flag:
+            return jresponse('-1', 'container not found', request,404) 
+        
         if src_file.is_deleted():
             return jresponse('-1', 'not found', request,404) 
         

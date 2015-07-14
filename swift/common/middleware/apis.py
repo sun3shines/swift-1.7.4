@@ -17,7 +17,6 @@ class ApiMiddleware(object):
 
     def __call__(self, env, start_response):
         
-        
         if is_get_quota(env):
             get_quota_env(env)
             

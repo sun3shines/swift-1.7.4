@@ -290,6 +290,9 @@ class DirerController(object):
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
+        if not broker.cnt_flag:
+            return jresponse('-1', 'container not found', req,404) 
+        
         if not os.path.exists(broker.db_file):
             created = True
         else:
@@ -327,6 +330,9 @@ class DirerController(object):
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
+        
+        if not dst_broker.cnt_flag:
+            return jresponse('-1', 'container not found', req,404) 
         
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404) 
@@ -374,6 +380,10 @@ class DirerController(object):
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
+        
+        if not dst_broker.cnt_flag:
+            return jresponse('-1', 'container not found', req,404) 
+        
         dirsize = src_broker.get_data_dir_size()
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404)

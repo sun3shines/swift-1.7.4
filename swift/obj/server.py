@@ -272,6 +272,9 @@ class ObjectController(object):
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         
+        if not file.cnt_flag:
+            return jresponse('-1', 'container not found', request,404) 
+        
         upload_expiration = time.time() + self.max_upload_time
         etag = md5()
         upload_size = 0
@@ -559,6 +562,9 @@ class ObjectController(object):
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
+        if not dst_file.cnt_flag:
+            return jresponse('-1', 'container not found', req,404) 
+        
         if src_file.is_deleted():
             return jresponse('-1', 'not found', req,404)
         
@@ -615,6 +621,9 @@ class ObjectController(object):
         
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+        
+        if not dst_file.cnt_flag:
+            return jresponse('-1', 'container not found', req,404) 
         
         if src_file.is_deleted():
             return jresponse('-1', 'not found', req,404)
