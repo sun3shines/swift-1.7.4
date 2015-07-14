@@ -110,10 +110,14 @@ def db_init(dbpath):
     conn = get_conn(dbpath)
     create_table(conn, create_table_sql)
 
-def db_values(dbpath):
+def db_values(dbpath,desc=False,limit=None):
     '''查询所有数据...'''
     
-    fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations'''
+    if desc and limit:
+        fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations order by id desc limit %s''' % (str(limit))
+    else:
+        fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations'''
+        
     conn = get_conn(dbpath)
     return fetchall(conn, fetchall_sql)
 

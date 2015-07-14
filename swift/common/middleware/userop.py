@@ -44,7 +44,13 @@ class UserOpMiddleware(object):
         dbpath = '%s/%s.db' % (self.dbdir,account)
         
         if 'GET_OP_HISTORY' == req.GET.get('op'):
-            data = db_values(dbpath)
+            if req.GET.get('recent'):
+                desc_flag = True
+                limit = int(req.GET.get('recent')) 
+                data = db_values(dbpath,desc_flag,limit)
+            else:
+                data = db_values(dbpath)
+                
             op_list = json.dumps(data)
             return Response(body=op_list, request=req)(env,start_response)
         
