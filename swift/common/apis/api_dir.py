@@ -70,6 +70,20 @@ def file_open_env(env):
     param.pop('op')
     param['ftype'] = 'f'
     env['QUERY_STRING'] = newparamqs(param)
+    
+    start = param.get('offset')
+    length = param.get('length')
+    if start or length:
+        if not start:
+            start = '0'
+        if not length:
+            length = ''
+        
+        end = length
+        if length:
+            end = str(int(start)) + str(int(length))
+        env['HTTP_RANGE'] = 'bytes=%s-%s' % (start,end)
+    
     return True
 
 def is_link_create(env):
