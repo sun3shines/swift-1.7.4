@@ -22,6 +22,7 @@ from swift.common.mx_swob import wsgify
 
 from swift.proxy.controllers.base import get_account_info
 from swift.common.utils import split_path
+from swift.common.bufferedhttp import jresponse
 
 class AccountQuotaMiddleware(object):
 
@@ -51,7 +52,8 @@ class AccountQuotaMiddleware(object):
         quota = int(account_info['meta'].get('quota-bytes', -1))
 
         if 0 <= quota < new_size:
-            return HTTPRequestEntityTooLarge()
+            respbody='Your request is too large.'
+            return jresponse('-1', respbody, request,413)
 
         return self.app
 
