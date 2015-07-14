@@ -129,9 +129,12 @@ def db_update(dbpath,status='status3',comment='comments3',tx_id ='tx1'):
     conn = get_conn(dbpath)
     update(conn, update_sql, data)
 
-def db_delete(dbpath):
+def db_delete(dbpath,desc=False,limit=None):
     
-    delete_sql = 'DELETE FROM operations'
+    if desc and limit:
+        delete_sql = 'DELETE FROM operations WHERE id IN (SELECT id FROM operations order by id desc limit %s)' % (str(limit))
+    else:
+        delete_sql = 'DELETE FROM operations'
     data = []
     conn = get_conn(dbpath)
     delete(conn, delete_sql)

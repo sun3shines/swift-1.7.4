@@ -55,7 +55,13 @@ class UserOpMiddleware(object):
             return Response(body=op_list, request=req)(env,start_response)
         
         elif 'DELETE_HISTORY' == req.GET.get('op'):
-            db_delete(dbpath)
+            
+            if req.GET.get('recent'):
+                desc_flag = True
+                limit = int(req.GET.get('recent'))
+                db_delete(dbpath,desc_flag,limit) 
+            else:
+                db_delete(dbpath)
             return jresponse('0','',req,204)(env,start_response)
         
         
