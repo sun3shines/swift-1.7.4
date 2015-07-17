@@ -275,6 +275,10 @@ class ObjectController(object):
         if not file.cnt_flag:
             return jresponse('-1', 'container not found', request,404) 
         
+        overwrite = request.headers.get('x-overwrite')
+        if overwrite != 'true' and not file.is_deleted():
+            return jresponse('-1', 'file exists', request,409) 
+        
         upload_expiration = time.time() + self.max_upload_time
         etag = md5()
         upload_size = 0

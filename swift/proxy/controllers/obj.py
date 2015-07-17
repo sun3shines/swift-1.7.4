@@ -506,7 +506,10 @@ class ObjectController(Controller):
         if error_response:
             return error_response
         
-        if object_versions :
+        overwrite = req.GET.get('overwrite')
+        
+        if 'true'==overwrite and object_versions :
+            
             hreq = Request.blank(req.path_info, environ={'REQUEST_METHOD': 'HEAD'})
             hresp = self.GETorHEAD_base(hreq, _('Object'), partition, nodes,
                 hreq.path_info, len(nodes))
@@ -556,6 +559,10 @@ class ObjectController(Controller):
                 nheaders['X-Delete-At-Host'] = '%(ip)s:%(port)s' % node
                 nheaders['X-Delete-At-Partition'] = delete_at_part
                 nheaders['X-Delete-At-Device'] = node['device']
+                
+            if overwrite:
+                nheaders['x-overwrite'] = overwrite
+                
             pile.spawn(self._connect_put_node, node_iter, partition,
                        req.path_info, nheaders, self.app.logger.thread_locals,req.query_string)
         conns = [conn for conn in pile if conn]
