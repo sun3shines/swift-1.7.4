@@ -561,7 +561,7 @@ class ObjectController(object):
             return jresponse('-1', 'bad request', req,400)
             
         src_file = DiskFile(self.devices, device, partition, account, src_container,
-                        src_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+                        src_obj, self.logger, keep_data_fp=True,disk_chunk_size=self.disk_chunk_size)
         
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
@@ -582,7 +582,33 @@ class ObjectController(object):
             else:    
                 return jresponse('-1', 'conflict', req,409)
                                       
-        dst_file.copy(src_file.data_file)
+        ## dst_file.copy(src_file.data_file) ##
+        
+        if True:
+            upload_expiration = time.time() + self.max_upload_time
+            
+            upload_size = 0
+            last_sync = 0
+            
+            with dst_file.mkstemp() as (fd, tmppath):
+                
+                for chunk in src_file:
+                    
+                    upload_size += len(chunk)
+                    if time.time() > upload_expiration:
+                        return jresponse('-1','request timeout',req,408)
+                   
+                    while chunk:
+                        written = os.write(fd, chunk)
+                        chunk = chunk[written:]
+                    # For large files sync every 512MB (by default) written
+                    if upload_size - last_sync >= self.bytes_per_sync:
+                        tpool.execute(os.fdatasync, fd)
+                        drop_buffer_cache(fd, last_sync, upload_size - last_sync)
+                        last_sync = upload_size
+                    sleep()
+                
+                dst_file.copy_put(fd, tmppath)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
