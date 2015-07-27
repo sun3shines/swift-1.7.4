@@ -81,7 +81,7 @@ def file_open_env(env):
         
         end = length
         if length:
-            end = str(int(start)) + str(int(length))
+            end = str(int(start)+int(length)-1)
         env['HTTP_RANGE'] = 'bytes=%s-%s' % (start,end)
     
     return True
