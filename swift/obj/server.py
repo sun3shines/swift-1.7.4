@@ -318,6 +318,7 @@ class ObjectController(object):
                 'Content-Length': str(os.fstat(fd).st_size),
                 'X-Timestamp': request.headers['x-timestamp'],
                 'X-File-Type':'f',
+                'X-Object-Permisson':'700'
             }
             
             if metastr:
@@ -339,6 +340,8 @@ class ObjectController(object):
             hdata = {'md5':etag,'size':metadata['Content-Length']}
             hdata['ctime'] = hdata['mtime'] = metadata['X-Timestamp']
             hdata['path'] = '/'.join(['',container,obj])
+            hdata['X-Object-Permisson'] = metadata['X-Object-Permisson']
+            
             hdata = json.dumps(hdata)
         
         resp = HTTPCreated(body=hdata,request=request)

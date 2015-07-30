@@ -596,7 +596,10 @@ def get_logger(conf, name=None, log_to_console=False, log_route=None,
     if logger in get_logger.handler4logger:
         logger.removeHandler(get_logger.handler4logger[logger])
 
+
     # facility for this logger will be set by last call wins
+    
+    ''' 
     facility = getattr(SysLogHandler, conf.get('log_facility', 'LOG_LOCAL0'),
                        SysLogHandler.LOG_LOCAL0)
     udp_host = conf.get('log_udp_host')
@@ -612,9 +615,18 @@ def get_logger(conf, name=None, log_to_console=False, log_route=None,
             if e.errno != errno.ENOTSOCK:  # Socket operation on non-socket
                 raise e
             handler = SysLogHandler(facility=facility)
+            
+   
+    ''' 
+    handler = logging.FileHandler('/var/log/cloudfs.log', 'a')
+    handler.setLevel(logging.INFO)
+    
+
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+    
     get_logger.handler4logger[logger] = handler
+
 
     # setup console logging
     if log_to_console or hasattr(get_logger, 'console_handler4logger'):
