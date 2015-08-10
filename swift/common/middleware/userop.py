@@ -22,7 +22,7 @@ import time
 from swift.common.bufferedhttp import jresponse
 from swift.common.utils import get_logger,split_path,json
 
-from swift.common.middleware.userdb import db_insert,db_update,db_delete,db_values
+from swift.common.middleware.userdb import db_insert,db_update,db_delete,db_values,task_db_delete,task_db_values
 
 class UserOpMiddleware(object):
 
@@ -64,7 +64,17 @@ class UserOpMiddleware(object):
                 db_delete(dbpath)
             return jresponse('0','',req,204)(env,start_response)
         
-        
+        elif 'GET_OP_TASK' == req.GET.get('op'):
+            if req.GET.get('tx_id'):
+                
+                tx_id = req.GET.get('tx_id') 
+                data = task_db_values(dbpath,tx_id)
+                
+                op_list = json.dumps(data)
+                return Response(body=op_list, request=req)(env,start_response)
+            else:
+                return jresponse('-1','error params',req,400)(env,start_response)
+            
         if 'register' != container:
             path = ''
             type = ''

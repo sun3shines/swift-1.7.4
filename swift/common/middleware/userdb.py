@@ -65,7 +65,6 @@ def fetchall(conn, sql):
         data = cu.fetchall()
         return data 
         
-
 def update(conn, sql, data):
     '''更新数据'''
     if sql is not None and sql != '':
@@ -87,6 +86,77 @@ def delete(conn, sql):
 
         close_all(conn, cu)
 
+def delete_data(conn, sql, data):
+    '''删除数据'''
+    if sql is not None and sql != '':
+        if data is not None:
+            cu = get_cursor(conn)
+            for d in data:
+                
+                cu.execute(sql, d)
+                conn.commit()
+            close_all(conn, cu)
+    
+def fetchone(conn, sql, data):
+    '''查询一条数据'''
+    if sql is not None and sql != '':
+        if data is not None:
+            
+            
+            cu = get_cursor(conn)
+            cu.execute(sql, data)
+            r = cu.fetchall()
+            return r
+
+
+def task_db_init(dbpath):
+
+    table = 'tasks'
+
+    conn = get_conn(dbpath)
+    drop_table(conn, table)
+        
+    # id tx_id path type method tenant url time status comment
+    create_table_sql = '''CREATE TABLE `tasks` (
+                          `id` integer PRIMARY KEY autoincrement,
+                          `tx_id` varchar(64) DEFAULT NULL,
+                          `time` varchar(32) DEFAULT NULL,
+                          `status` varchar(256) DEFAULT NULL,
+                          `comment` varchar(256) DEFAULT NULL
+                        )'''
+    conn = get_conn(dbpath)
+    create_table(conn, create_table_sql)
+    
+def task_db_values(dbpath,tx_id):
+    '''查询所有数据...'''
+    
+    fetchall_sql = '''SELECT time,status,comment FROM tasks WHERE tx_id = ?'''
+    data = (tx_id,)
+    conn = get_conn(dbpath)
+    return fetchone(conn, fetchall_sql,data)
+
+def task_db_update(dbpath,status='status3',comment='comments3',tx_id ='tx1'):
+        
+    update_sql = 'UPDATE tasks SET status = ?,comment = ? WHERE tx_id = ? '
+    data = [(status, comment,tx_id)]
+    
+    conn = get_conn(dbpath)
+    update(conn, update_sql, data)
+
+def task_db_delete(dbpath,tx_id):
+    
+    delete_sql = 'DELETE FROM tasks WHERE tx_id = ? '
+    data = [(tx_id,)]
+    conn = get_conn(dbpath)
+    delete_data(conn, delete_sql,data)
+
+def task_db_insert(dbpath,tx_id, swifttime, status, comment):
+    
+    save_sql = '''INSERT INTO tasks values (?, ?, ?, ?, ?)'''
+    data = [(None, tx_id, swifttime, status, comment)]
+    conn = get_conn(dbpath)
+    db_save(conn, save_sql, data)
+    
 def db_init(dbpath):
     
     table = 'operations'
@@ -147,7 +217,7 @@ def db_insert(dbpath,tx_id, path, type, method, tenant, url, swifttime, status, 
     # conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore')
     db_save(conn, save_sql, data)
     
-def main():
+def operations_main():
     account = 'zhu__feng006'
     dbpath = '/mnt/cloudfs-object/%s.db' % (account)
     db_init(dbpath)
@@ -164,5 +234,23 @@ def main():
     print 'delete'
     print db_values(dbpath)
 
+def tasks_main():
+    account = 'zhu__feng006'
+    dbpath = '/mnt/cloudfs-object/%s.db' % (account)
+    task_db_init(dbpath)
+    task_db_insert(dbpath,'tx1','time7','','')
+    task_db_insert(dbpath,'tx2','time7','','')
+    print 'insert'
+    print task_db_values(dbpath,'tx1')
+    
+    task_db_update(dbpath,'status3','comment3','tx1')
+    print 'update'
+    print task_db_values(dbpath,'tx1')
+    
+    task_db_delete(dbpath,'tx1')
+    print 'delete'
+    print task_db_values(dbpath,'tx1')
+
 if __name__ == '__main__':
-    main()
+    ## operations_main() ##
+    tasks_main()

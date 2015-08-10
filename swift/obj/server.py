@@ -27,6 +27,8 @@ from tempfile import mkstemp
 from urllib import unquote
 from contextlib import contextmanager
 import syslog
+import multiprocessing
+import threading
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -58,7 +60,7 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
 
 from swift.common.utils import get_uuid,json
 from swift.lib.utils import file_decrypt
-
+from swift.common.new_subthread import addtosubthread
 from swift.common.common.swob import Response as HResponse
 from swift.common.common.swob import Range
 
@@ -539,6 +541,40 @@ class ObjectController(object):
         resp = jresponse('0', '', req,204)
         return resp
     
+    def copy_action(self,src_file,dst_file,req,account):
+        time.sleep(10) 
+        upload_expiration = time.time() + self.max_upload_time
+        upload_size = 0
+        last_sync = 0
+        with dst_file.mkstemp() as (fd, tmppath):
+            
+            for chunk in src_file:
+                
+                upload_size += len(chunk)
+                if time.time() > upload_expiration:
+                    return jresponse('-1','request timeout',req,408)
+               
+                while chunk:
+                    written = os.write(fd, chunk)
+                    chunk = chunk[written:]
+                # For large files sync every 512MB (by default) written
+                if upload_size - last_sync >= self.bytes_per_sync:
+                    tpool.execute(os.fdatasync, fd)
+                    drop_buffer_cache(fd, last_sync, upload_size - last_sync)
+                    last_sync = upload_size
+                sleep()
+            
+            dst_file.copy_put(fd, tmppath)
+        if dst_file.is_deleted():
+            return jresponse('-1', 'conflict', req,409)
+        
+        dst_file.metadata = src_file.metadata
+        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
+        with dst_file.mkstemp() as (fd, tmppath):
+            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
+        self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
+        return True
+    
     @public
     def COPY(self, req):
         try:
@@ -588,41 +624,12 @@ class ObjectController(object):
         ## dst_file.copy(src_file.data_file) ##
         
         if True:
-            upload_expiration = time.time() + self.max_upload_time
-            
-            upload_size = 0
-            last_sync = 0
-            
-            with dst_file.mkstemp() as (fd, tmppath):
-                
-                for chunk in src_file:
-                    
-                    upload_size += len(chunk)
-                    if time.time() > upload_expiration:
-                        return jresponse('-1','request timeout',req,408)
-                   
-                    while chunk:
-                        written = os.write(fd, chunk)
-                        chunk = chunk[written:]
-                    # For large files sync every 512MB (by default) written
-                    if upload_size - last_sync >= self.bytes_per_sync:
-                        tpool.execute(os.fdatasync, fd)
-                        drop_buffer_cache(fd, last_sync, upload_size - last_sync)
-                        last_sync = upload_size
-                    sleep()
-                
-                dst_file.copy_put(fd, tmppath)
-        
-        if dst_file.is_deleted():
-            return jresponse('-1', 'conflict', req,409)
-        
-        dst_file.metadata = src_file.metadata
-        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
-        with dst_file.mkstemp() as (fd, tmppath):
-            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
-            
-        self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
-        
+            ## addtosubthread('copy object',self.copy_action,src_file, dst_file, req,account) ##
+            ## self.copy_action(src_file, dst_file, req,account) ##
+            ## p = multiprocessing.Process(target=self.copy_action,args=(src_file, dst_file, req,account))
+            ## p.start()
+            p = threading.Thread(target=self.copy_action,args=(src_file,dst_file,req,account))
+            p.start() 
         return jresponse('0', '', req,201)
     
     

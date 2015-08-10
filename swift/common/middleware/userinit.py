@@ -38,7 +38,7 @@ from swift.common.utils import split_path
 MAX_PATH_LENGTH = MAX_OBJECT_NAME_LENGTH + MAX_CONTAINER_NAME_LENGTH + 2
 
 from swift.proxy.controllers.base import get_account_info
-from swift.common.middleware.userdb import db_init
+from swift.common.middleware.userdb import db_init, task_db_init
 from swift.common.bufferedhttp import jresponse
 
 class CreateContainerError(Exception):
@@ -328,6 +328,7 @@ class Userinit(object):
             if not self.account_exists(req):
                 dbpath = '/mnt/cloudfs-object/%s.db' % (account)
                 db_init(dbpath)
+                task_db_init(dbpath)
                 return self.handle_register(req)
             else:
                 return jresponse('-1','account user alread exists',req,400)
