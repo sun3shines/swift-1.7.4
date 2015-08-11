@@ -753,6 +753,7 @@ class ObjectController(Controller):
                         'X-Container-Partition': container_partition,
                         'X-Container-Device': container['device'],
                         'x-copy-dst':req.headers['Destination'],
+                        'x-async':req.GET.get('async','false'),
                         'x-ftype':req.GET['ftype'],
                         'x-overwrite':req.GET.get('overwrite','false'),
                         'X-Account-Host': '%(ip)s:%(port)s' % account,

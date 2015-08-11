@@ -27,8 +27,8 @@ from tempfile import mkstemp
 from urllib import unquote
 from contextlib import contextmanager
 import syslog
-import multiprocessing
 import threading
+import multiprocessing
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -60,9 +60,9 @@ from swift.common.http import HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED, \
 
 from swift.common.utils import get_uuid,json
 from swift.lib.utils import file_decrypt
-from swift.common.new_subthread import addtosubthread
 from swift.common.common.swob import Response as HResponse
 from swift.common.common.swob import Range
+from swift.common.middleware.userdb import task_db_insert,task_db_update
 
 DATADIR = 'objects'
 ASYNCDIR = 'async_pending'
@@ -542,39 +542,52 @@ class ObjectController(object):
         return resp
     
     def copy_action(self,src_file,dst_file,req,account):
-        time.sleep(10) 
-        upload_expiration = time.time() + self.max_upload_time
-        upload_size = 0
-        last_sync = 0
-        with dst_file.mkstemp() as (fd, tmppath):
-            
-            for chunk in src_file:
-                
-                upload_size += len(chunk)
-                if time.time() > upload_expiration:
-                    return jresponse('-1','request timeout',req,408)
-               
-                while chunk:
-                    written = os.write(fd, chunk)
-                    chunk = chunk[written:]
-                # For large files sync every 512MB (by default) written
-                if upload_size - last_sync >= self.bytes_per_sync:
-                    tpool.execute(os.fdatasync, fd)
-                    drop_buffer_cache(fd, last_sync, upload_size - last_sync)
-                    last_sync = upload_size
-                sleep()
-            
-            dst_file.copy_put(fd, tmppath)
-        if dst_file.is_deleted():
-            return jresponse('-1', 'conflict', req,409)
         
-        dst_file.metadata = src_file.metadata
-        dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
-        with dst_file.mkstemp() as (fd, tmppath):
-            dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
-        self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
-        return True
-    
+        dbpath = '/mnt/cloudfs-object/%s.db' % (account)
+        tx_id = req.environ.get('HTTP_X_TRANS_ID')
+        swifttime = str(time.time())
+        task_db_insert(dbpath, tx_id, swifttime, 'running', '')
+        
+        try:
+            upload_expiration = time.time() + self.max_upload_time
+            upload_size = 0
+            last_sync = 0
+            with dst_file.mkstemp() as (fd, tmppath):
+                
+                for chunk in src_file:
+                    
+                    upload_size += len(chunk)
+                    if time.time() > upload_expiration:
+                        task_db_update(dbpath,'request timeout',tx_id)
+                        return jresponse('-1','request timeout',req,408)
+                   
+                    while chunk:
+                        written = os.write(fd, chunk)
+                        chunk = chunk[written:]
+                    # For large files sync every 512MB (by default) written
+                    if upload_size - last_sync >= self.bytes_per_sync:
+                        tpool.execute(os.fdatasync, fd)
+                        drop_buffer_cache(fd, last_sync, upload_size - last_sync)
+                        last_sync = upload_size
+                    sleep()
+                
+                dst_file.copy_put(fd, tmppath)
+            if dst_file.is_deleted():
+                task_db_update(dbpath,'failed','conflict',tx_id)
+                return jresponse('-1', 'conflict', req,409)
+            
+            dst_file.metadata = src_file.metadata
+            dst_file.metadata['X-Timestamp'] = req.headers['x-timestamp']
+            with dst_file.mkstemp() as (fd, tmppath):
+                dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
+            self.account_update(req, account, src_file.metadata['Content-Length'], add_flag=True)
+            task_db_update(dbpath,'success','',tx_id)
+            
+        except:
+            task_db_update(dbpath,'failed','server exception',tx_id)
+            syslog.syslog(syslog.LOG_ERR,'object copy: '+str(traceback.format_exc()))
+            
+
     @public
     def COPY(self, req):
         try:
@@ -622,14 +635,16 @@ class ObjectController(object):
                 return jresponse('-1', 'conflict', req,409)
                                       
         ## dst_file.copy(src_file.data_file) ##
-        
-        if True:
-            ## addtosubthread('copy object',self.copy_action,src_file, dst_file, req,account) ##
-            ## self.copy_action(src_file, dst_file, req,account) ##
-            ## p = multiprocessing.Process(target=self.copy_action,args=(src_file, dst_file, req,account))
-            ## p.start()
-            p = threading.Thread(target=self.copy_action,args=(src_file,dst_file,req,account))
-            p.start() 
+        tx_id = req.environ.get('HTTP_X_TRANS_ID') 
+        #if req.headers.get('x-async') == 'true':
+            #p = multiprocessing.Process(target=self.copy_action,args=(src_file,dst_file,req,account))
+        #    p = threading.Thread(target=self.copy_action,args=(src_file,dst_file,req,account))
+        #    p.setDaemon(True)
+        #    p.start()
+        #    return jresponse('0', str(tx_id), req,200)
+        #else:
+        #    self.copy_action(src_file, dst_file, req,account)
+        self.copy_action(src_file, dst_file, req,account)
         return jresponse('0', '', req,201)
     
     
