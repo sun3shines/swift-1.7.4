@@ -693,7 +693,7 @@ class ObjectController(Controller):
         resp = self.make_requests(req, self.app.object_ring,
                 partition, 'DELETE_RECYCLE', req.path_info, headers)
         
-        if object_versions:
+        if object_versions and req.GET.get('cover') == 'true':
             # this is a version manifest and needs to be handled differently
             
                 
