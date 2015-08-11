@@ -392,6 +392,30 @@ class Controller(object):
         return self.best_response(req, statuses, reasons, bodies,
                   '%s %s' % (self.server_type, req.method))
 
+    def copy_make_requests(self, req, ring, part, method, path, headers,
+                    query_string=''):
+
+        start_nodes = ring.get_part_nodes(part)
+        nodes = self.iter_nodes(part, start_nodes, ring)
+        pile = GreenPile(len(start_nodes))
+        for head in headers:
+
+            pile.spawn(self._make_request, nodes, part, method, path,
+                       head, query_string, self.app.logger.thread_locals)
+
+        if req.GET.get('async') == 'true':
+            statuses = (201,)
+            reasons = ('Created',)
+            tx_id = req.environ.get('HTTP_X_TRANS_ID')
+            bodies = ('{"status": "0", "msg": "%s"}' % (tx_id),)
+
+        else:
+            response = [resp for resp in pile if resp] 
+            statuses, reasons, bodies = zip(*response)
+
+        return self.best_response(req, statuses, reasons, bodies,
+                  '%s %s' % (self.server_type, req.method))
+
     def best_response(self, req, statuses, reasons, bodies, server_type,
                       etag=None,jsondata=None):
         """

@@ -37,7 +37,7 @@ class Application(object):
             self.logger = get_logger(conf, log_route='proxy-server')
         else:
             self.logger = logger
-
+            
         swift_dir = conf.get('swift_dir', '/etc/swift')
         self.node_timeout = int(conf.get('node_timeout', 10000))
         self.conn_timeout = float(conf.get('conn_timeout', 50))
@@ -45,6 +45,7 @@ class Application(object):
         self.put_queue_depth = int(conf.get('put_queue_depth', 10))
         self.object_chunk_size = int(conf.get('object_chunk_size', 65536))
         self.client_chunk_size = int(conf.get('client_chunk_size', 65536))
+        self.devices = conf.get('devices', '/mnt/cloudfs-object')
         self.error_suppression_interval = \
             int(conf.get('error_suppression_interval', 60))
         self.error_suppression_limit = \

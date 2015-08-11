@@ -765,7 +765,7 @@ class ObjectController(Controller):
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-        resp = self.make_requests(req, self.app.object_ring,
+        resp = self.copy_make_requests(req, self.app.object_ring,
                 object_partition, 'COPY', req.path_info, headers)
         
         

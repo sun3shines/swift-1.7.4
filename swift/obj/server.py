@@ -541,12 +541,7 @@ class ObjectController(object):
         resp = jresponse('0', '', req,204)
         return resp
     
-    def copy_action(self,src_file,dst_file,req,account):
-        
-        dbpath = '/mnt/cloudfs-object/%s.db' % (account)
-        tx_id = req.environ.get('HTTP_X_TRANS_ID')
-        swifttime = str(time.time())
-        task_db_insert(dbpath, tx_id, swifttime, 'running', '')
+    def copy_action(self,src_file,dst_file,req,account,dbpath,tx_id):
         
         try:
             upload_expiration = time.time() + self.max_upload_time
@@ -590,26 +585,38 @@ class ObjectController(object):
 
     @public
     def COPY(self, req):
+        
+        device, partition, accountname = split_path(unquote(req.path), 3, 3, True)
+        accountname = accountname.split('/')[0]
+        dbpath = '%s/%s.db' % (self.devices,accountname)
+        tx_id = req.environ.get('HTTP_X_TRANS_ID')
+        swifttime = str(time.time())
+        task_db_insert(dbpath, tx_id, swifttime, 'running', '')
+        
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
             validate_device_partition(device, partition)
         except ValueError, err:
+            task_db_update(dbpath,'failed','bad request',tx_id)
             return jresponse('-1', 'bad request', req,400)
-        
+    
         try:
             dst_path = req.headers.get('x-copy-dst')
             dst_container, dst_obj = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
+            task_db_update(dbpath,'failed','bad request',tx_id)
             return jresponse('-1', 'bad request', req,400)
                         
         if self.mount_check and not check_mount(self.devices, device):
+            task_db_update(dbpath,'failed','insufficient storage',tx_id)
             return jresponse('-1', 'insufficient storage', req,507)
 
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
             self.logger.increment('PUT.errors')
+            task_db_update(dbpath,'failed','bad request',tx_id)
             return jresponse('-1', 'bad request', req,400)
             
         src_file = DiskFile(self.devices, device, partition, account, src_container,
@@ -619,9 +626,11 @@ class ObjectController(object):
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
         if not dst_file.cnt_flag:
+            task_db_update(dbpath,'failed','container not found',tx_id)
             return jresponse('-1', 'container not found', req,404) 
         
         if src_file.is_deleted():
+            task_db_update(dbpath,'failed','not found',tx_id)
             return jresponse('-1', 'not found', req,404)
         
         if not dst_file.is_deleted():
@@ -632,19 +641,13 @@ class ObjectController(object):
                 dst_file.unlink_data()
                 self.account_update(req, account, content_length, add_flag=False) 
             else:    
+                task_db_update(dbpath,'failed','conflict',tx_id)
                 return jresponse('-1', 'conflict', req,409)
                                       
         ## dst_file.copy(src_file.data_file) ##
         tx_id = req.environ.get('HTTP_X_TRANS_ID') 
-        #if req.headers.get('x-async') == 'true':
-            #p = multiprocessing.Process(target=self.copy_action,args=(src_file,dst_file,req,account))
-        #    p = threading.Thread(target=self.copy_action,args=(src_file,dst_file,req,account))
-        #    p.setDaemon(True)
-        #    p.start()
-        #    return jresponse('0', str(tx_id), req,200)
-        #else:
-        #    self.copy_action(src_file, dst_file, req,account)
-        self.copy_action(src_file, dst_file, req,account)
+        self.copy_action(src_file, dst_file, req,account,dbpath,tx_id)
+
         return jresponse('0', '', req,201)
     
     

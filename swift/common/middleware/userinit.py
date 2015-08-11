@@ -71,6 +71,7 @@ def quota_req(new_req):
 class Userinit(object):
     
     def __init__(self, app, conf):
+        self.devices = conf.get('devices', '/mnt/cloudfs-object')
         self.app = app
             
     def handle_new_req(self,req, user_path,new_method='PUT',new_headers = None,new_params=None,qstr=''):
@@ -326,7 +327,7 @@ class Userinit(object):
 
         if 'register' == container:
             if not self.account_exists(req):
-                dbpath = '/mnt/cloudfs-object/%s.db' % (account)
+                dbpath = '%s/%s.db' % (self.devices,account)
                 db_init(dbpath)
                 task_db_init(dbpath)
                 return self.handle_register(req)
