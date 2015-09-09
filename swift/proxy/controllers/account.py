@@ -37,7 +37,7 @@ class AccountController(Controller):
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
                        'Connection': 'close'}
-            resp = self.make_requests(
+            resp = self.make_requests(self.account_name,
                 Request.blank('/v1/' + self.account_name),
                 self.app.account_ring, partition, 'PUT',
                 '/' + self.account_name, [headers] * len(nodes))
@@ -68,7 +68,7 @@ class AccountController(Controller):
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
                        'Connection': 'close'}
-            resp = self.make_requests(
+            resp = self.make_requests(self.account_name,
                 Request.blank('/v1/' + self.account_name),
                 self.app.account_ring, partition, 'PUT',
                 '/' + self.account_name, [headers] * len(nodes))
@@ -100,7 +100,7 @@ class AccountController(Controller):
                    'Connection': 'close'}
         self.transfer_headers(req.headers, headers)
         
-        resp = self.make_requests(req, self.app.account_ring,
+        resp = self.make_requests(self.account_name,req, self.app.account_ring,
             account_partition, 'PUT', req.path_info, [headers] * len(accounts))
         return resp
 
@@ -114,7 +114,7 @@ class AccountController(Controller):
                    'Connection': 'close'}
         self.transfer_headers(req.headers, headers)
         
-        resp = self.make_requests(req, self.app.account_ring,
+        resp = self.make_requests(self.account_name,req, self.app.account_ring,
             account_partition, 'POST', req.path_info,
             [headers] * len(accounts))
         if resp.status_int == HTTP_NOT_FOUND and self.app.account_autocreate:
@@ -124,7 +124,7 @@ class AccountController(Controller):
                             (len(self.account_name), MAX_ACCOUNT_NAME_LENGTH)
                 return jresponse('-1', respbody, req,400)
             
-            resp = self.make_requests(
+            resp = self.make_requests(self.account_name,
                 Request.blank('/v1/' + self.account_name),
                 self.app.account_ring, account_partition, 'PUT',
                 '/' + self.account_name, [headers] * len(accounts))
@@ -144,7 +144,7 @@ class AccountController(Controller):
                    'X-Trans-Id': self.trans_id,
                    'Connection': 'close'}
         
-        resp = self.make_requests(req, self.app.account_ring,
+        resp = self.make_requests(self.account_name,req, self.app.account_ring,
             account_partition, 'DELETE', req.path_info,
             [headers] * len(accounts))
         return resp

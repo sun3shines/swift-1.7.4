@@ -219,7 +219,7 @@ class Controller(object):
                   or (None, None, None) if it does not exist
         """
         partition, nodes = self.app.account_ring.get_nodes(account)
-        
+        # print 'account  ---------------' + str(partition)+'   '+str(nodes) 
         result_code = 0
         
         attempts_left = len(nodes)
@@ -257,19 +257,23 @@ class Controller(object):
                     _('Trying to get account info for %s') % path)
         if result_code == HTTP_NOT_FOUND and autocreate:
             if len(account) > MAX_ACCOUNT_NAME_LENGTH:
+                # print 'account xxxxxxxxxxxxxxx2'
                 return None, None
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
                        'Connection': 'close'}
-            resp = self.make_requests(Request.blank('/v1' + path),
+            resp = self.make_requests(self.account_name,Request.blank('/v1' + path),
                 self.app.account_ring, partition, 'PUT',
                 path, [headers] * len(nodes))
             
             if not is_success(resp.status_int):
                 self.app.logger.warning('Could not autocreate account %r' % \
                                         path)
+                # print 'account xxxxxxxxxxxxxxx1'
                 return None, None
             result_code = HTTP_OK
+
+        # print 'account  result_code '+str(result_code) + '    conn_time      '+str(self.app.conn_timeout)
 
         if result_code == HTTP_OK:
             return partition, nodes
@@ -289,7 +293,7 @@ class Controller(object):
         
         partition, nodes = self.app.container_ring.get_nodes(account, container)
         path = '/%s/%s' % (account, container)
-        
+        # print 'container  ---------------' + str(partition)+'   '+str(nodes) 
         if not self.account_info(account, autocreate=account_autocreate)[1]:
             return None, None,None
         result_code = 0
@@ -307,7 +311,7 @@ class Controller(object):
             try:
                 with ConnectionTimeout(self.app.conn_timeout):
                     conn = http_connect(node['ip'], node['port'],
-                            node['device'], partition, 'HEAD', path, headers)
+                            account, partition, 'HEAD', path, headers)
                 with Timeout(self.app.node_timeout):
                     resp = conn.getresponse()
                     body = resp.read()
@@ -328,7 +332,8 @@ class Controller(object):
             except (Exception, Timeout):
                 self.exception_occurred(node, _('Container'),
                     _('Trying to get container info for %s') % path)
-        
+       
+        # print 'container  result_code '+str(result_code) + '    conn_time      '+str(self.app.conn_timeout) 
         if result_code == HTTP_OK:
             return partition, nodes,versions
         return None, None,None
@@ -346,14 +351,14 @@ class Controller(object):
             if not self.error_limited(node):
                 yield node
         
-    def _make_request(self, nodes, part, method, path, headers, query,
+    def _make_request(self, account,nodes, part, method, path, headers, query,
                       logger_thread_locals):
         self.app.logger.thread_locals = logger_thread_locals
         for node in nodes:
             try:
                 with ConnectionTimeout(self.app.conn_timeout):
                     conn = http_connect(node['ip'], node['port'],
-                            node['device'], part, method, path,
+                            account, part, method, path,
                             headers=headers, query_string=query)
                     conn.node = node
                 with Timeout(self.app.node_timeout):
@@ -368,7 +373,7 @@ class Controller(object):
                     _('Trying to %(method)s %(path)s') %
                     {'method': method, 'path': path})
 
-    def make_requests(self, req, ring, part, method, path, headers,
+    def make_requests(self, account,req, ring, part, method, path, headers,
                     query_string=''):
         """
         Sends an HTTP request to multiple nodes and aggregates the results.
@@ -384,7 +389,7 @@ class Controller(object):
         pile = GreenPile(len(start_nodes))
         for head in headers:
             
-            pile.spawn(self._make_request, nodes, part, method, path,
+            pile.spawn(self._make_request, account,nodes, part, method, path,
                        head, query_string, self.app.logger.thread_locals)
         response = [resp for resp in pile if resp]
         
@@ -392,7 +397,7 @@ class Controller(object):
         return self.best_response(req, statuses, reasons, bodies,
                   '%s %s' % (self.server_type, req.method))
 
-    def copy_make_requests(self, req, ring, part, method, path, headers,
+    def copy_make_requests(self,account, req, ring, part, method, path, headers,
                     query_string=''):
 
         start_nodes = ring.get_part_nodes(part)
@@ -400,7 +405,7 @@ class Controller(object):
         pile = GreenPile(len(start_nodes))
         for head in headers:
 
-            pile.spawn(self._make_request, nodes, part, method, path,
+            pile.spawn(self._make_request, account,nodes, part, method, path,
                        head, query_string, self.app.logger.thread_locals)
 
         if req.GET.get('async') == 'true':
@@ -581,7 +586,7 @@ class Controller(object):
                     headers = dict(req.headers)
                     headers['Connection'] = 'close'
                     conn = http_connect(node['ip'], node['port'],
-                        node['device'], partition, req.method, path,
+                        self.account_name, partition, req.method, path,
                         headers=headers,
                         query_string=req.query_string)
                 with Timeout(self.app.node_timeout):
@@ -716,7 +721,7 @@ class Controller(object):
                     headers = dict(req.headers)
                     headers['Connection'] = 'close'
                     conn = http_connect(node['ip'], node['port'],
-                        node['device'], partition, req.method, path,
+                        self.account_name, partition, req.method, path,
                         headers=headers,
                         query_string=req.query_string)
                 with Timeout(self.app.node_timeout):

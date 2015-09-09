@@ -157,7 +157,7 @@ def run_wsgi(conf_file, app_section, *args, **kwargs):
         monkey_patch_mimetools()
         app = loadapp('config:%s' % conf_file,
                       global_conf={'log_name': log_name})
-        pool = GreenPool(size=1024)
+        pool = GreenPool(size=100)
         try:
             wsgi.server(sock, app, NullLogger(), custom_pool=pool)
         except socket.error, err:
@@ -166,7 +166,7 @@ def run_wsgi(conf_file, app_section, *args, **kwargs):
         pool.waitall()
 
     worker_count = int(conf.get('workers', '1'))
-    worker_count = 0
+    # worker_count = 100
     # Useful for profiling [no forks].
     if worker_count == 0:
         run_server()

@@ -464,7 +464,7 @@ class ObjectController(Controller):
                         _('Trying to write to %s') % path)
             conn.queue.task_done()
 
-    def _connect_put_node(self, nodes, part, path, headers,
+    def _connect_put_node(self, account,nodes, part, path, headers,
                           logger_thread_locals,query_string = ''):
         """Method for a file PUT connect"""
         self.app.logger.thread_locals = logger_thread_locals
@@ -472,7 +472,7 @@ class ObjectController(Controller):
             try:
                 with ConnectionTimeout(self.app.conn_timeout):
                     conn = http_connect(node['ip'], node['port'],
-                            node['device'], part, 'PUT', path, headers,query_string)
+                            account, part, 'PUT', path, headers,query_string)
                 with Timeout(self.app.node_timeout):
                     resp = conn.getexpect()
                 if resp.status == HTTP_CONTINUE:
@@ -551,7 +551,7 @@ class ObjectController(Controller):
             
             nheaders['X-Account-Host'] = '%(ip)s:%(port)s' % account
             nheaders['X-Account-Partition'] = account_partition
-            nheaders['X-Account-Device'] = account['device']
+            nheaders['X-Account-Device'] = self.account_name
                         
             nheaders['Expect'] = '100-continue'
             if delete_at_nodes:
@@ -563,7 +563,7 @@ class ObjectController(Controller):
             if overwrite:
                 nheaders['x-overwrite'] = overwrite
                 
-            pile.spawn(self._connect_put_node, node_iter, partition,
+            pile.spawn(self._connect_put_node,self.account_name, node_iter, partition,
                        req.path_info, nheaders, self.app.logger.thread_locals,req.query_string)
         conns = [conn for conn in pile if conn]
         if len(conns) <= len(nodes) / 2:
@@ -574,6 +574,8 @@ class ObjectController(Controller):
             return jresponse('-1', 'ServiceUnavailable', req,503)
         
         bytes_transferred = 0
+        start_time=time.time()
+
         try:
             with ContextPool(len(nodes)) as pool:
                 for conn in conns:
@@ -588,6 +590,15 @@ class ObjectController(Controller):
                             
                             break
                     bytes_transferred += len(chunk)
+
+                    dural_time=float(time.time()) - float(start_time)
+                    if(dural_time>0):
+                        speed = float(bytes_transferred)/float(dural_time)/(1000*1000)
+                        while(speed >1):
+                            sleep(0.1)
+                            dural_time=float(time.time()) - float(start_time)
+                            speed = float(bytes_transferred)/float(dural_time)/(1000*1000)
+
                     if bytes_transferred > MAX_FILE_SIZE:
                         return jresponse('-1', 'RequestEntityTooLarge', req,413)
                     for conn in list(conns):
@@ -687,10 +698,10 @@ class ObjectController(Controller):
             
             nheaders['X-Account-Host'] = '%(ip)s:%(port)s' % account
             nheaders['X-Account-Partition'] = account_partition
-            nheaders['X-Account-Device'] = account['device']
+            nheaders['X-Account-Device'] = self.account_name
                                     
             headers.append(nheaders)
-        resp = self.make_requests(req, self.app.object_ring,
+        resp = self.make_requests(self.account_name,req, self.app.object_ring,
                 partition, 'DELETE_RECYCLE', req.path_info, headers)
         
         if object_versions and req.GET.get('cover') == 'true':
@@ -758,14 +769,14 @@ class ObjectController(Controller):
                         'x-overwrite':req.GET.get('overwrite','false'),
                         'X-Account-Host': '%(ip)s:%(port)s' % account,
                         'X-Account-Partition': account_partition,
-                        'X-Account-Device': account['device'],
+                        'X-Account-Device': self.account_name,
                         
                         'Connection': 'close'}
                  
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-        resp = self.copy_make_requests(req, self.app.object_ring,
+        resp = self.copy_make_requests(self.account_name,req, self.app.object_ring,
                 object_partition, 'COPY', req.path_info, headers)
         
         
@@ -799,7 +810,7 @@ class ObjectController(Controller):
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-        resp = self.make_requests(req, self.app.object_ring,
+        resp = self.make_requests(self.account_name,req, self.app.object_ring,
                 object_partition, 'MOVE', req.path_info, headers)
         
         if False and object_versions:
@@ -866,7 +877,7 @@ class ObjectController(Controller):
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-        resp = self.make_requests(req, self.app.object_ring,
+        resp = self.make_requests(self.account_name,req, self.app.object_ring,
                 object_partition, 'MOVE', req.path_info, headers)
                
         return resp
@@ -898,7 +909,7 @@ class ObjectController(Controller):
             nheaders['X-Container-Device'] = container['device']
             
             headers.append(nheaders)
-        resp = self.make_requests(req, self.app.object_ring, partition,
+        resp = self.make_requests(self.account_name,req, self.app.object_ring, partition,
                                   'POST', req.path_info, headers)
         return resp
         

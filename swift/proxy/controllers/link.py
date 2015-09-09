@@ -76,7 +76,7 @@ class LinkController(Controller):
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-        resp = self.make_requests(req, self.app.link_ring,
+        resp = self.make_requests(self.account_name,req, self.app.link_ring,
                 link_partition, 'PUT', req.path_info, headers)
         
         return resp

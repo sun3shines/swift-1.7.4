@@ -117,7 +117,7 @@ class Userinit(object):
         
         resp = new_req.get_response(self.app)
             
-        return '',resp
+        return new_req.path,resp
     
     def handle_normal(self,req,rdatas):
         
@@ -128,7 +128,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
-            
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle' + '  new_path:  '+new_path
+
     
     def handle_quota(self,req,rdatas):
         
@@ -140,7 +141,9 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
-            
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
+ 
     def handle_normal_versions(self,req,rdatas):
         
         new_path,resp=  self.handle_new_req(req, '/normal_versions', 'PUT')
@@ -149,6 +152,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
                     
     def handle_normal_metadata(self,req,rdatas):
         
@@ -159,6 +164,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_segments(self,req,rdatas):
         
@@ -168,6 +175,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
                 
     def handle_recycle(self,req,rdatas):
         
@@ -177,6 +186,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_recycle_meta(self,req,rdatas):
         
@@ -187,6 +198,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_recycle_user(self,req,rdatas):
         
@@ -197,6 +210,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_private(self,req,rdatas):
         
@@ -206,6 +221,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_private_versions(self,req,rdatas):
         
@@ -216,6 +233,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_private_metadata(self,req,rdatas):
         
@@ -228,6 +247,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
     
     def handle_backup(self,req,rdatas):
         
@@ -237,6 +258,7 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle' + '  new_path:  '+new_path
             
     def handle_backup_versions(self,req,rdatas):
         
@@ -246,6 +268,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def handle_backup_metadata(self,req,rdatas):
         
@@ -257,6 +281,8 @@ class Userinit(object):
         else:
             rdatas['not_found_count'] = 1 + rdatas['not_found_count']
             rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle'+ '  new_path:  '+new_path
+
             
     def account_exists(self,req):
         
@@ -270,11 +296,8 @@ class Userinit(object):
 
         rdatas = {'failed_files':[],'success_count':0,'not_found_count':0}
         
-        failed_file_response_type = HTTPBadRequest
         req.accept = 'application/json'
         out_content_type = 'application/json'
-        if not out_content_type:
-            return HTTPNotAcceptable(request=req)
         
         self.handle_normal(req,rdatas)
     
@@ -315,21 +338,24 @@ class Userinit(object):
             return jresponse('0','',req,200,param=resp_body)
         
         if rdatas['failed_files']:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
+            return jresponse('-1',json.dumps(resp_body), req,400)
             
-        return HTTPBadRequest('Invalid userinit delete.')
+        return jresponse('-1', 'Invalid userinit register', req, 400) 
     
     @wsgify
     def __call__(self, req):
 
         _,account,container,_ = split_path(req.path, 1, 4, True)
 
+        dbpath = '%s/%s.db' % (self.devices,account)
         if 'register' == container:
+            print dbpath+'register'
             if not self.account_exists(req):
+                print dbpath+'start'
                 dbpath = '%s/%s.db' % (self.devices,account)
                 db_init(dbpath)
                 task_db_init(dbpath)
+                print dbpath+'end'
                 return self.handle_register(req)
             else:
                 return jresponse('-1','account user alread exists',req,400)

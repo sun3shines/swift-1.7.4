@@ -53,7 +53,7 @@ class DirerController(Controller):
         """Handler for HTTP GET/HEAD requests."""
         
         if not self.container_info(self.account_name,self.container_name)[1]:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
         
         part, nodes = self.app.direr_ring.get_nodes(self.account_name, self.container_name,self.direr_name)
         
@@ -110,7 +110,7 @@ class DirerController(Controller):
             headers.append(nheaders)
             
        
-        resp = self.make_requests(req, self.app.direr_ring,
+        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
                 direr_partition, 'PUT', req.path_info, headers)
         return resp
         
@@ -144,14 +144,14 @@ class DirerController(Controller):
         
             new_header['X-Account-Host'] = '%(ip)s:%(port)s' % account
             new_header['X-Account-Partition'] = account_partition
-            new_header['X-Account-Device'] = account['device']
+            new_header['X-Account-Device'] = self.account_name
             
             if object_versions:
                 new_header['x-versions-location'] = object_versions
                 
             headers.append(new_header)
                 
-        resp = self.make_requests(req, self.app.direr_ring,
+        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
                     direr_partition, 'DELETE_RECYCLE', req.path_info, headers)
         
         return resp
@@ -185,14 +185,14 @@ class DirerController(Controller):
         
             new_header['X-Account-Host'] = '%(ip)s:%(port)s' % account
             new_header['X-Account-Partition'] = account_partition
-            new_header['X-Account-Device'] = account['device']
+            new_header['X-Account-Device'] = self.account_name
                                     
             if object_versions:
                 new_header['x-versions-location'] = object_versions
                 
             headers.append(new_header)
                 
-        resp = self.make_requests(req, self.app.direr_ring,
+        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
                     direr_partition, 'RESET', req.path_info, headers)
         
         return resp
@@ -257,7 +257,7 @@ class DirerController(Controller):
             headers.append(nheaders)
             
        
-        resp = self.make_requests(req, self.app.direr_ring,
+        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
                 direr_partition, 'COPY', req.path_info, headers)
         return resp
     
@@ -291,7 +291,7 @@ class DirerController(Controller):
             headers.append(nheaders)
             
        
-        resp = self.make_requests(req, self.app.direr_ring,
+        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
                 direr_partition, 'MOVE', req.path_info, headers)
         return resp
     

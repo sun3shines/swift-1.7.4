@@ -158,7 +158,6 @@ class MemcacheRing(object):
             try:
                 sock.sendall('set %s %d %d %s noreply\r\n%s\r\n' % \
                               (key, flags, timeout, len(value), value))
-                # print key+ '  '+value
                 self._return_conn(server, fp, sock)
                 return
             except Exception, e:
@@ -179,7 +178,6 @@ class MemcacheRing(object):
             try:
                 sock.sendall('get %s\r\n' % key)
                 line = fp.readline().strip().split()
-                # print line
                 while line[0].upper() != 'END':
                     if line[0].upper() == 'VALUE' and line[1] == key:
                         size = int(line[3])

@@ -93,9 +93,11 @@ class SwiftFile(object):
             read = 0
             self.started_at_0 = False
             self.read_to_eof = False
+            start_time = time.time()
             if self.fp.tell() == 0:
                 self.started_at_0 = True
                 self.iter_etag = md5()
+
             while True:
                 chunk = self.fp.read(self.disk_chunk_size)
                 if chunk:
@@ -106,6 +108,15 @@ class SwiftFile(object):
                         self.drop_cache(self.fp.fileno(), dropped_cache,
                             read - dropped_cache)
                         dropped_cache = read
+
+                    dural_time=float(time.time()) - float(start_time)
+                    if(dural_time>0):
+                        speed = float(read)/float(dural_time)/(1000*1000)
+                        while(speed >3):
+                            sleep(0.1)
+                            dural_time=float(time.time()) - float(start_time)
+                            speed = float(read)/float(dural_time)/(1000*1000)
+
                     yield chunk
                     if self.iter_hook:
                         self.iter_hook()
@@ -190,7 +201,7 @@ class ObjectController(object):
             conf.get('log_requests', 'true').lower() in TRUE_VALUES
         self.max_upload_time = int(conf.get('max_upload_time', 86400))
         self.slow = int(conf.get('slow', 0))
-        self.bytes_per_sync = int(conf.get('mb_per_sync', 512)) * 1024 * 1024
+        self.bytes_per_sync = int(conf.get('mb_per_sync', 50)) * 1024 * 1024
         
         default_allowed_headers = '''
             x-static-large-object,
@@ -847,6 +858,8 @@ class ObjectController(object):
                     res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
+                    if req.method == 'DELETE_RECYCLE':
+                        print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})

@@ -168,8 +168,6 @@ class Bulk(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
                 failed_files.append([quote(delete_path), resp.status])
 
         resp_body = get_response_body(
@@ -181,10 +179,9 @@ class Bulk(object):
             return jresponse('0','',req,200,param=resp_body)
         
         if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        return HTTPBadRequest('Invalid bulk delete.')
-
+            return jresponse('-1',json.dumps(resp_body),req,400)
+        return jresponse('-1', 'Invalid batch delete', req, 400) 
+    
     @wsgify
     def __call__(self, req):
         extract_type = req.GET.get('extract-archive')

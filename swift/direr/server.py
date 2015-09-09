@@ -208,7 +208,7 @@ class DirerController(object):
             return jresponse('-1', 'not found', req,404)
         
         if not user_broker.is_deleted():
-            self.del_dir(user_broker.datadir)
+            user_broker.del_dir(user_broker.datadir)
                                 
         if user_broker.fhr_dir_is_deleted():
             user_broker.create_dir_object(user_broker.fhr_path)
@@ -293,9 +293,7 @@ class DirerController(object):
         if not broker.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
         
-        if not os.path.exists(broker.db_file):
-            created = True
-        else:
+        if True:
             created = broker.is_deleted()
             broker.update_put_timestamp()
             if broker.is_deleted():
@@ -523,6 +521,9 @@ class DirerController(object):
                     res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
+                    # if req.method == 'PUT':
+                    #    print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
+
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})

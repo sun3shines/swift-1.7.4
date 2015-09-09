@@ -67,7 +67,7 @@ class Batch(object):
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
 
         out_content_type = 'application/json'
         if not out_content_type:
@@ -75,8 +75,7 @@ class Batch(object):
         
         failed_files = []
         success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
-
+        
         batchparams = json.loads(req.body)
         for param in batchparams.get('list'):
             
@@ -114,8 +113,7 @@ class Batch(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
+                
                 failed_files.append([quote(new_path), resp.status])
 
         resp_body = get_response_body(
@@ -130,22 +128,15 @@ class Batch(object):
         elif batchparams.get('list') and success_count == len(batchparams.get('list')):
             return jresponse('0','',req,200)
         
-        '''
-        if (success_count or not_found_count) and not failed_files:
-            return jresponse('0','',req,200,param=resp_body)
-        
-        if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        ''' 
-        return HTTPBadRequest('Invalid batch delete.')
+       
+        return jresponse('-1', 'Invalid batch delete', req, 400) 
     
     def batch_copy(self,req):
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
 
         out_content_type = 'application/json'
         if not out_content_type:
@@ -153,8 +144,6 @@ class Batch(object):
         
         failed_files = []
         success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
-
         batchparams = json.loads(req.body)
         for param in batchparams.get('list'):
             
@@ -191,8 +180,7 @@ class Batch(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
+                
                 failed_files.append([quote(new_path), resp.status])
 
         resp_body = get_response_body(
@@ -207,23 +195,14 @@ class Batch(object):
         elif batchparams.get('list') and success_count == len(batchparams.get('list')):
             return jresponse('0','',req,200)
         
-        '''
-        if (success_count or not_found_count) and not failed_files:
-            return jresponse('0','',req,200,param=resp_body)
-        
-        if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        ''' 
-        return HTTPBadRequest('Invalid batch delete.')
-    
+        return jresponse('-1', 'Invalid batch copy', req, 400) 
 
     def batch_move(self,req):
         
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
 
         out_content_type = 'application/json'
         if not out_content_type:
@@ -231,8 +210,7 @@ class Batch(object):
         
         failed_files = []
         success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
-
+        
         batchparams = json.loads(req.body)
         
         move_flag = False
@@ -282,8 +260,6 @@ class Batch(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
                 failed_files.append([quote(new_path), resp.status])
 
         resp_body = get_response_body(
@@ -300,19 +276,8 @@ class Batch(object):
         
         elif batchparams.get('list') and success_count == len(batchparams.get('list')):
             return jresponse('0','',req,200)
-        
-        '''
-        if (success_count or not_found_count) and not failed_files:
-            
-            return jresponse('0','',req,200,param=resp_body)
-        
-        if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        '''
          
-        return HTTPBadRequest('Invalid batch move.')
-        
+        return jresponse('-1', 'Invalid batch move.', req, 400) 
     
     def batch_recycle(self,req):
         
@@ -320,7 +285,7 @@ class Batch(object):
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
 
         out_content_type = 'application/json'
         if not out_content_type:
@@ -328,7 +293,6 @@ class Batch(object):
         
         failed_files = []
         success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
 
         batchparams = json.loads(req.body)
         for param in batchparams.get('list'):
@@ -367,8 +331,6 @@ class Batch(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
                 failed_files.append([quote(new_path), resp.status])
 
         resp_body = get_response_body(
@@ -383,22 +345,14 @@ class Batch(object):
         elif batchparams.get('list') and success_count == len(batchparams.get('list')):
             return jresponse('0','',req,200)
         
-        '''
-        if (success_count or not_found_count) and not failed_files:
-            return jresponse('0','',req,200,param=resp_body)
-        
-        if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        ''' 
-        return HTTPBadRequest('Invalid batch delete.')
-    
+        return jresponse('-1', 'Invalid batch recycle', req, 400)
+     
     def batch_reset(self,req):
 
         try:
             version, account, _junk = split_path(req.path,2, 3, True)
         except ValueError:
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
 
         out_content_type = 'application/json'
         if not out_content_type:
@@ -406,8 +360,7 @@ class Batch(object):
         
         failed_files = []
         success_count = not_found_count = 0
-        failed_file_response_type = HTTPBadRequest
-
+        
         rcyc_flag = False
         rcy_resp = None
         
@@ -449,8 +402,7 @@ class Batch(object):
             elif resp.status_int == HTTP_UNAUTHORIZED:
                 return HTTPUnauthorized(request=req)
             else:
-                if resp.status_int // 100 == 5:
-                    failed_file_response_type = HTTPBadGateway
+                
                 failed_files.append([quote(new_path), resp.status])
 
         resp_body = get_response_body(
@@ -468,15 +420,7 @@ class Batch(object):
         elif batchparams.get('list') and success_count == len(batchparams.get('list')):
             return jresponse('0','',req,200)
         
-        '''
-        if (success_count or not_found_count) and not failed_files:
-            return jresponse('0','',req,200,param=resp_body)
-            
-        if failed_files:
-            return failed_file_response_type(
-                json.dumps(resp_body), content_type=out_content_type)
-        ''' 
-        return HTTPBadRequest('Invalid batch delete.')
+        return jresponse('-1', 'Invalid batch reset', req, 400) 
     
     def handle_batch(self, req):
         
@@ -495,8 +439,8 @@ class Batch(object):
         if 'MOVERECYCLE' == req.GET.get('op'):
             return self.batch_recycle(req)
         
-        return HTTPBadRequest('Invalid batch operations')
-
+        return jresponse('-1', 'Invalid batch operations', req, 400) 
+    
     @wsgify
     def __call__(self, req):
          

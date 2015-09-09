@@ -44,7 +44,7 @@ class AccountQuotaMiddleware(object):
         new_quota = request.headers.get('X-Account-Meta-Quota-Bytes')
         if new_quota:
             if not new_quota.isdigit():
-                return HTTPBadRequest()
+                return jresponse('-1', 'bad request', request, 400)
             return self.app
 
         account_info = get_account_info(request.environ, self.app)

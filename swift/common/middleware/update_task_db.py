@@ -4,8 +4,6 @@
 import sqlite3
 import os
 from urllib import unquote
-import traceback
-
 def get_conn(path):
     
     conn = sqlite3.connect(path)
@@ -159,103 +157,13 @@ def task_db_insert(dbpath,tx_id, swifttime, status, comment):
     conn = get_conn(dbpath)
     db_save(conn, save_sql, data)
     
-def db_init(dbpath):
-    
-    table = 'operations'
-    
-    conn = get_conn(dbpath)
-    drop_table(conn, table)
-    
-    # id tx_id path type method tenant url time status comment
-    create_table_sql = '''CREATE TABLE `operations` (
-                          `id` integer PRIMARY KEY autoincrement,
-                          `tx_id` varchar(64) DEFAULT NULL,
-                          `path` varchar(256) NOT NULL,
-                          `type` varchar(8) DEFAULT NULL,
-                          `method` varchar(8) DEFAULT NULL,
-                          `tenant` varchar(256) DEFAULT NULL,
-                          `url` varchar(512) DEFAULT NULL,
-                          `time` varchar(32) DEFAULT NULL,
-                          `status` varchar(256) DEFAULT NULL,
-                          `comment` varchar(256) DEFAULT NULL
-                        )'''
-    conn = get_conn(dbpath)
-    create_table(conn, create_table_sql)
-
-def db_values(dbpath,desc=False,limit=None):
-    '''查询所有数据...'''
-    
-    if desc and limit:
-        fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations order by id desc limit %s''' % (str(limit))
-    else:
-        fetchall_sql = '''SELECT path,type,method,tenant,time,status,comment FROM operations'''
-        
-    conn = get_conn(dbpath)
-    return fetchall(conn, fetchall_sql)
-
-def db_update(dbpath,status='status3',comment='comments3',tx_id ='tx1'):
-        
-    update_sql = 'UPDATE operations SET status = ?,comment = ? WHERE tx_id = ? '
-    data = [(status, comment,tx_id)]
-    
-    conn = get_conn(dbpath)
-    update(conn, update_sql, data)
-
-def db_delete(dbpath,desc=False,limit=None):
-    
-    if desc and limit:
-        delete_sql = 'DELETE FROM operations WHERE id IN (SELECT id FROM operations order by id desc limit %s)' % (str(limit))
-    else:
-        delete_sql = 'DELETE FROM operations'
-    data = []
-    conn = get_conn(dbpath)
-    delete(conn, delete_sql)
-
-def db_insert(dbpath,tx_id, path, type, method, tenant, url, swifttime, status, comment):
-    
-    save_sql = '''INSERT INTO operations values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
-    data = [(None, tx_id, unquote(path), type, method, tenant, unquote(url), swifttime, status, comment)]
-    conn = get_conn(dbpath)
-    # conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore')
-    try:
-        db_save(conn, save_sql, data)
-    except:
-        print dbpath+'  '+str(traceback.format_exc())
-    
-def operations_main():
-    account = 'zhu__feng006'
-    dbpath = '/mnt/cloudfs-object/%s.db' % (account)
-    db_init(dbpath)
-    db_insert(dbpath,'tx1','path2','type3','method4','tenant5','url6','time7','','')
-    db_insert(dbpath,'tx2','path5','type7','method4','tenant5','url6','time7','','')
-    print 'insert'
-    print db_values(dbpath)
-    
-    db_update(dbpath,'status3','comment3','tx1')
-    print 'update'
-    print db_values(dbpath)
-    
-    db_delete(dbpath)
-    print 'delete'
-    print db_values(dbpath)
-
 def tasks_main():
-    account = 'zhu__feng006'
-    dbpath = '/mnt/cloudfs-object/%s.db' % (account)
-    task_db_init(dbpath)
-    task_db_insert(dbpath,'tx1','time7','','')
-    task_db_insert(dbpath,'tx2','time7','','')
-    print 'insert'
-    print task_db_values(dbpath,'tx1')
-    
-    task_db_update(dbpath,'status3','comment3','tx1')
-    print 'update'
-    print task_db_values(dbpath,'tx1')
-    
-    task_db_delete(dbpath,'tx1')
-    print 'delete'
-    print task_db_values(dbpath,'tx1')
+    files = os.listdir('.')
+    for fn in files:
+        if fn.startswith('AUTH_') and fn.endswith('.db'):
+            dbpath = './%s' % (fn)
+            task_db_init(dbpath)
+            print fn
 
 if __name__ == '__main__':
-    ## operations_main() ##
     tasks_main()

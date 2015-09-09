@@ -33,6 +33,7 @@ from swift.common.utils import cache_from_env, get_logger, get_remote_client, \
 from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
 from swift.common.oauth.bridge import *
 import hashlib
+from swift.common.bufferedhttp import jresponse
 
 def strmd5sum(src):
     
@@ -68,6 +69,7 @@ class OAuth(object):
         self.scope = conf.get('scope', 'user').strip()
         
     def __call__(self, env, start_response):
+
         if env.get('PATH_INFO', '').startswith(self.auth_prefix):
             return self.handle(env, start_response)
         
@@ -81,9 +83,12 @@ class OAuth(object):
                 minsegs=1, maxsegs=4, rest_with_last=True)
         except ValueError:
             self.logger.increment('errors')
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
         
         token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
+        #################################################
+        # return self.app(env, start_response)
+        ################################################
         if token :
             
             user_info = self.get_cache_user_info(env, token)
@@ -182,7 +187,7 @@ class OAuth(object):
                 minsegs=1, maxsegs=4, rest_with_last=True)
         except ValueError:
             self.logger.increment('errors')
-            return HTTPNotFound(request=req)
+            return jresponse('-1','not found',req,404)
         
         token = env.get('HTTP_X_AUTH_TOKEN', env.get('HTTP_X_STORAGE_TOKEN'))
         verify_flag = False
@@ -253,7 +258,15 @@ class OAuth(object):
         
         datastr = user_passwd+account_user
         md5_account_user = strmd5sum(datastr)
-        
+       
+	#########################################################
+        # token =  u'gPDcsIChk0n5F209fXl6gLGzwa0cdIznMKi88CuM'+account_user
+        # expires = '1431328576'
+        # oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent':account_user})
+        # return Response(body=oauth_data_list,request=req)
+
+	########################################################
+ 
         memcache_client = cache_from_env(req.environ)
         if not memcache_client:
             raise Exception('Memcache required')

@@ -39,7 +39,7 @@ def quote(value, safe='/'):
 
 
 def direct_get_account(node, part, account, marker=None, limit=None,
-                       prefix=None, delimiter=None, conn_timeout=5,
+                       prefix=None, delimiter=None, conn_timeout=50,
                        response_timeout=15):
     """
     Get listings directly from the account server.
@@ -89,7 +89,7 @@ def direct_get_account(node, part, account, marker=None, limit=None,
     return resp_headers, json_loads(resp.read())
 
 
-def direct_head_container(node, part, account, container, conn_timeout=5,
+def direct_head_container(node, part, account, container, conn_timeout=50,
                           response_timeout=15):
     """
     Request container information directly from the container server.

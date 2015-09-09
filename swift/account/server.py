@@ -112,9 +112,8 @@ class AccountController(object):
             
         else:   # put account
             timestamp = normalize_timestamp(req.headers['x-timestamp'])
-            if not os.path.exists(broker.db_file):
-                created = True
-            else:
+    
+            if True:
                 created = broker.is_deleted()
                 broker.update_put_timestamp(timestamp)
                 if broker.is_deleted():

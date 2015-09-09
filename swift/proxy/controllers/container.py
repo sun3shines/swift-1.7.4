@@ -130,12 +130,12 @@ class ContainerController(Controller):
                         'x-trans-id': self.trans_id,
                         'X-Account-Host': '%(ip)s:%(port)s' % account,
                         'X-Account-Partition': account_partition,
-                        'X-Account-Device': account['device'],
+                        'X-Account-Device': self.account_name,
                         'Connection': 'close'}
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
         
-        resp = self.make_requests(req, self.app.container_ring,
+        resp = self.make_requests(self.account_name,req, self.app.container_ring,
                 container_partition, 'PUT', req.path_info, headers)
         return resp
 
@@ -154,7 +154,7 @@ class ContainerController(Controller):
                    'Connection': 'close'}
         self.transfer_headers(req.headers, headers)
        
-        resp = self.make_requests(req, self.app.container_ring,
+        resp = self.make_requests(self.account_name,req, self.app.container_ring,
                 container_partition, 'POST', req.path_info,
                 [headers] * len(containers))
         return resp
@@ -172,10 +172,10 @@ class ContainerController(Controller):
                            'X-Trans-Id': self.trans_id,
                            'X-Account-Host': '%(ip)s:%(port)s' % account,
                            'X-Account-Partition': account_partition,
-                           'X-Account-Device': account['device'],
+                           'X-Account-Device': self.account_name,
                            'Connection': 'close'})
         
-        resp = self.make_requests(req, self.app.container_ring,
+        resp = self.make_requests(self.account_name,req, self.app.container_ring,
                     container_partition, 'DELETE', req.path_info, headers)
         
         return resp

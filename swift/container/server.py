@@ -149,8 +149,6 @@ class ContainerController(object):
                 not os.path.exists(broker.db_file):
             pass
         
-        if not os.path.exists(broker.db_file):
-            return jresponse('-1', 'not found', req,404) 
         if obj:     # delete object
             return jresponse('0', '', req,204) 
         else:
@@ -197,19 +195,16 @@ class ContainerController(object):
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         broker = self._get_container_broker(drive, part, account, container)
         if obj:     # put container object
-            
-            if not os.path.exists(broker.db_file):
-                return jresponse('-1', 'not found', req,404)
-             
+#            print '00000000000000000000000000' + '   '+  req.path
             return jresponse('0', '', req,201) 
         else:   # put container
-            if not os.path.exists(broker.db_file):
-                
-                created = True
-            else:
+            if True:
                 created = broker.is_deleted()
+#                print '00000000000000000000000004' +'    '+ req.path
                 broker.update_put_timestamp(timestamp)
+#                print '00000000000000000000000074' +'    '+ req.path
                 if broker.is_deleted():
+#                    print '00000000000000000000000084' +'    '+ req.path
                     return jresponse('-1', 'conflict', req,409) 
                 
             metadata = {}
@@ -226,8 +221,9 @@ class ContainerController(object):
                 broker.update_metadata(metadata)
             resp = self.account_update(req, account, container, broker)
             if resp:
+#                print '00000000000000000000000001' +'    '+ req.path
                 return resp
-            
+#            print '00000000000000000000000002' +'    '+ req.path
             return jresponse('0', '', req,201) 
 
     @public
@@ -415,6 +411,8 @@ class ContainerController(object):
                     res = jresponse('-1', 'method not allowed', req,405) 
                 else:
                     res = method(req)
+                    # if req.method == 'PUT':
+                    #    print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
