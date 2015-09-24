@@ -294,7 +294,8 @@ class DirerController(object):
             return jresponse('-1', 'container not found', req,404) 
         
         if True:
-            created = broker.is_deleted()
+            if not broker.is_deleted():
+                return jresponse('-1', 'already exists', req,409)
             broker.update_put_timestamp()
             if broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409)

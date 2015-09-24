@@ -263,7 +263,9 @@ class DirerController(Controller):
     
     @public
     def MOVE(self,req):
-        
+        if 'ftype' not in req.GET:
+            return jresponse('-1', 'param error', req,404)
+
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         

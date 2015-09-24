@@ -171,6 +171,9 @@ class ContainerController(object):
     def PUT(self, req):
         """Handle HTTP PUT request."""
         
+        if not req.body:
+            return jresponse('-1', 'param error', req,400)
+        
         start_time = time.time()
         try:
             drive, part, account, container, obj = split_path(
@@ -195,16 +198,13 @@ class ContainerController(object):
         timestamp = normalize_timestamp(req.headers['x-timestamp'])
         broker = self._get_container_broker(drive, part, account, container)
         if obj:     # put container object
-#            print '00000000000000000000000000' + '   '+  req.path
             return jresponse('0', '', req,201) 
         else:   # put container
             if True:
-                created = broker.is_deleted()
-#                print '00000000000000000000000004' +'    '+ req.path
+                if not broker.is_deleted():
+                    return jresponse('-1', 'conflict', req,409) 
                 broker.update_put_timestamp(timestamp)
-#                print '00000000000000000000000074' +'    '+ req.path
                 if broker.is_deleted():
-#                    print '00000000000000000000000084' +'    '+ req.path
                     return jresponse('-1', 'conflict', req,409) 
                 
             metadata = {}
@@ -221,9 +221,7 @@ class ContainerController(object):
                 broker.update_metadata(metadata)
             resp = self.account_update(req, account, container, broker)
             if resp:
-#                print '00000000000000000000000001' +'    '+ req.path
                 return resp
-#            print '00000000000000000000000002' +'    '+ req.path
             return jresponse('0', '', req,201) 
 
     @public

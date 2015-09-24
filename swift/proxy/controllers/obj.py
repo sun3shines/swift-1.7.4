@@ -487,7 +487,7 @@ class ObjectController(Controller):
     @public
     @delay_denial
     def PUT(self, req):
-        
+
         account_partition, accounts = self.account_info(self.account_name,autocreate=False)
         account = accounts[0]
         (container_partition, containers,object_versions ) = self.container_info(self.account_name, self.container_name,
@@ -571,7 +571,7 @@ class ObjectController(Controller):
                 _('Object PUT returning 503, %(conns)s/%(nodes)s '
                 'required connections'),
                 {'conns': len(conns), 'nodes': len(nodes) // 2 + 1})
-            return jresponse('-1', 'ServiceUnavailable', req,503)
+            return jresponse('-1', 'conflict', req,503)
         
         bytes_transferred = 0
         start_time=time.time()
@@ -783,8 +783,11 @@ class ObjectController(Controller):
         return resp
     
     @public
-    def MOVE(self,req):    
-    
+    def MOVE(self,req):   
+
+        if 'ftype' not in req.GET:
+            return jresponse('-1', 'param error', req,404)
+
         (container_partition, containers,object_versions) = self.container_info(self.account_name, self.container_name,
                 account_autocreate=self.app.account_autocreate)
         

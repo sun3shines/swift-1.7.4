@@ -197,7 +197,10 @@ class AccountController(object):
         headers.update((key, value)
             for key, value in broker.metadata.iteritems()
             if value != '')
-        
+    
+        for key in ["X-Account-Container-Count", "X-Account-Object-Count",  "X-Type", "X-Object-Count" , "X-PUT-Timestamp", "X-Container-Count",'X-Bytes-Used']:
+            headers.pop(key)
+            
         hdata = json.dumps(headers)
         ret = Response(body=hdata, request=req)
         

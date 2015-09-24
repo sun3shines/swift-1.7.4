@@ -69,9 +69,15 @@ class UserOpMiddleware(object):
                 
                 tx_id = req.GET.get('tx_id') 
                 data = task_db_values(dbpath,tx_id)
-                
-                op_list = json.dumps(data)
-                return Response(body=op_list, request=req)(env,start_response)
+                if len(data) >0:
+                    op_list = json.dumps(data)
+                    if data[0][1] == 'success':
+                        return jresponse('0','success',req,201)(env,start_response)
+                    else:
+                        return jresponse('-1',data[0][2],req,400)(env,start_response)
+                else:   
+                    op_list = ''
+                    return jresponse('-1','task not found',req,400)(env,start_response)
             else:
                 return jresponse('-1','error params',req,400)(env,start_response)
             
