@@ -170,8 +170,7 @@ class ContainerController(object):
     @public
     def PUT(self, req):
         """Handle HTTP PUT request."""
-        
-        if not req.body:
+        if req.body:
             return jresponse('-1', 'param error', req,400)
         
         start_time = time.time()

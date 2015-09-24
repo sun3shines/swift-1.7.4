@@ -109,6 +109,8 @@ class ContainerController(Controller):
     @public
     def PUT(self, req):
         """HTTP PUT request handler."""
+        if req.body:
+            return jresponse('-1','param error',req,400)
         if len(self.container_name) > MAX_CONTAINER_NAME_LENGTH:
             
             respbody = 'Container name length of %d longer than %d' % \
