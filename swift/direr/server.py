@@ -16,6 +16,7 @@
 from __future__ import with_statement
 
 import os
+import os.path
 import time
 import traceback
 from urllib import unquote
@@ -127,6 +128,10 @@ class DirerController(object):
             return jresponse('-1','insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
+        
+        if not os.path.isdir(broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
+        
         dirsize = broker.get_data_dir_size()
         
         if broker.is_deleted():
@@ -162,6 +167,9 @@ class DirerController(object):
             return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
+        
+        if not os.path.isdir(broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
         
         dirsize = broker.get_data_dir_size()
         
@@ -203,6 +211,9 @@ class DirerController(object):
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         user_broker = self._get_meta_broker(drive, part, account, recycle_container,user_obj,recycle_uuid)
+        
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
         
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
@@ -256,6 +267,9 @@ class DirerController(object):
         
         src_broker = self._get_meta_broker(drive, part, account, src_container,src_direr,recycle_uuid)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
+        
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
         
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
@@ -330,6 +344,9 @@ class DirerController(object):
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
+        
         if not dst_broker.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
         
@@ -379,6 +396,9 @@ class DirerController(object):
         
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
+        
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
         
         if not dst_broker.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
@@ -483,6 +503,9 @@ class DirerController(object):
             return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
+        
+        if not os.path.isdir(broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
         
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404)

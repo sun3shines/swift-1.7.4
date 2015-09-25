@@ -19,6 +19,7 @@ from __future__ import with_statement
 import cPickle as pickle
 import errno
 import os
+import os.path
 import time
 import traceback
 from datetime import datetime
@@ -381,6 +382,9 @@ class ObjectController(object):
                         disk_chunk_size=self.disk_chunk_size,
                         iter_hook=sleep)
         
+        if os.path.isdir(file.data_file):
+            return jresponse('-1','object ftype error',request,400)
+        
         if file.is_deleted():
             return jresponse('-1', 'not found', request,404)
         try:
@@ -423,6 +427,9 @@ class ObjectController(object):
         
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+        
+        if os.path.isdir(file.data_file):
+            return jresponse('-1','object ftype error',request,400)
         
         if file.is_deleted():
             return jresponse('-1', 'not found', request,404)
@@ -486,6 +493,9 @@ class ObjectController(object):
         response_class = HTTPNoContent
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+        
+        if os.path.isdir(file.data_file):
+            return jresponse('-1','object ftype error',request,400)
         
         if file.is_deleted():
             response_class = HTTPNotFound
@@ -636,6 +646,9 @@ class ObjectController(object):
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
+        if os.path.isdir(src_file.data_file):
+            return jresponse('-1','object ftype error',req,400)
+        
         if not dst_file.cnt_flag:
             task_db_update(dbpath,'failed','container not found',tx_id)
             return jresponse('-1', 'container not found', req,404) 
@@ -690,6 +703,9 @@ class ObjectController(object):
         
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
+        
+        if os.path.isdir(src_file.data_file):
+            return jresponse('-1','object ftype error',req,400)
         
         if not dst_file.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
