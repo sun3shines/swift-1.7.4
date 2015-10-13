@@ -244,6 +244,7 @@ class DirerController(Controller):
                         'X-Container-Device': container['device'],
                         'x-copy-dst':req.headers['Destination'],
                         'x-ftype':req.GET['ftype'],
+                        'x-async':req.GET.get('async','false'),
                         'Connection': 'close'}
                 
             nheaders['X-Account-Host'] = '%(ip)s:%(port)s' % account
@@ -256,9 +257,11 @@ class DirerController(Controller):
             self.transfer_headers(req.headers, nheaders)
             headers.append(nheaders)
             
-       
-        resp = self.make_requests(self.account_name,req, self.app.direr_ring,
+        resp = self.copy_make_requests(self.account_name,req, self.app.direr_ring,
                 direr_partition, 'COPY', req.path_info, headers)
+               
+        # resp = self.make_requests(self.account_name,req, self.app.direr_ring,
+        #         direr_partition, 'COPY', req.path_info, headers)
         return resp
     
     @public

@@ -42,6 +42,7 @@ from swift.common.http import HTTP_NOT_FOUND, is_success, \
 
 from swift.common.utils import get_uuid
 from cloud.swift.common.utils import  X_CONTENT_LENGTH,X_ETAG
+from swift.common.middleware.userdb import task_db_insert,task_db_update
 
 class DirerController(object):
     """WSGI Controller for the container server."""
@@ -381,11 +382,20 @@ class DirerController(object):
     
     @public
     def COPY(self, req):
+
+        drive, part, accountname = split_path(unquote(req.path), 3, 3, True)
+        accountname = accountname.split('/')[0]
+        dbpath = '%s/%s.db' % (self.root,accountname)
+        tx_id = req.environ.get('HTTP_X_TRANS_ID')
+        swifttime = str(time.time())
+        task_db_insert(dbpath, tx_id, swifttime, 'running', '')
+        
         try:
             drive, part, account, src_container, src_direr = split_path(
                 unquote(req.path), 4, 5, True)
             validate_device_partition(drive, part)
         except ValueError, err:
+            task_db_update(dbpath,'failed','bad request',tx_id)
             return jresponse('-1', 'bad request', req,400)
         
         try:
@@ -393,6 +403,7 @@ class DirerController(object):
             dst_container, dst_direr = split_path(
                 unquote(dst_path), 1, 2, True)
         except ValueError, err:
+            task_db_update(dbpath,'failed','bad request',tx_id)
             return jresponse('-1', 'bad request', req,400)
             
         if self.mount_check and not check_mount(self.root, drive):
@@ -402,22 +413,27 @@ class DirerController(object):
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
         if src_broker.is_deleted():
+            task_db_update(dbpath,'failed','not found',tx_id)
             return jresponse('-1', 'not found', req,404)
                 
         if not os.path.isdir(src_broker.datadir):
+            task_db_update(dbpath,'failed','object ftype error',tx_id)
             return jresponse('-1','object ftype error',req,400)
         
         if not dst_broker.cnt_flag:
+            task_db_update(dbpath,'failed','not found',tx_id)
             return jresponse('-1', 'container not found', req,404) 
         
         dirsize = src_broker.get_data_dir_size()
 
         if not dst_broker.is_deleted():
+            task_db_update(dbpath,'failed','conflict',tx_id)
             return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.copy(src_broker.datadir)
         
         if dst_broker.is_deleted():
+            task_db_update(dbpath,'failed','conflict',tx_id)
             return jresponse('-1', 'conflict', req,409)
             
         object_versions = req.headers.get('x-versions-location')
@@ -433,9 +449,9 @@ class DirerController(object):
                 dst_broker.copy(ver_broker.datadir)
                 dstsize = dst_broker.get_data_dir_size()
                 dirsize = dstsize + dirsize
-                
+                        
         self.account_update(req, account, dirsize, add_flag=True)
-        
+        task_db_update(dbpath,'success','',tx_id)
         return jresponse('0', '', req,201)
     
         
