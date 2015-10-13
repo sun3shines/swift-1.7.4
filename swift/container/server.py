@@ -388,6 +388,11 @@ class ContainerController(object):
                         metadata['X-Container-Sync-To']!= \
                         broker.metadata['X-Container-Sync-To']:
                     broker.set_x_container_sync_points(-1, -1)
+            if 'X-Versions-Location' in metadata:
+                vbroker = self._get_container_broker(drive, part, account, metadata['X-Versions-Location'])
+                if vbroker.is_deleted():
+                    return jresponse('-1', 'not found', req,404)     
+                            
             broker.update_metadata(metadata)
         return jresponse('0', '', req,204) 
 

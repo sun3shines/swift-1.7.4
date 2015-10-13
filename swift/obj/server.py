@@ -382,11 +382,12 @@ class ObjectController(object):
                         disk_chunk_size=self.disk_chunk_size,
                         iter_hook=sleep)
         
-        if os.path.isdir(file.data_file):
-            return jresponse('-1','object ftype error',request,400)
-        
         if file.is_deleted():
             return jresponse('-1', 'not found', request,404)
+                
+        if os.path.isdir(file.data_file):
+            return jresponse('-1','object ftype error',request,400)
+
         try:
             file_size = file.get_data_file_size()
         except (DiskFileError, DiskFileNotExist):
@@ -428,12 +429,12 @@ class ObjectController(object):
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
-        if os.path.isdir(file.data_file):
-            return jresponse('-1','object ftype error',request,400)
-        
         if file.is_deleted():
             return jresponse('-1', 'not found', request,404)
-        
+                
+        if os.path.isdir(file.data_file):
+            return jresponse('-1','object ftype error',request,400)
+
         try:
             file_size = file.get_data_file_size()
         except (DiskFileError, DiskFileNotExist):
@@ -494,12 +495,12 @@ class ObjectController(object):
         file = DiskFile(self.devices, device, partition, account, container,
                         obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
+        if file.is_deleted():
+            return jresponse('-1','not found',request,404)
+               
         if os.path.isdir(file.data_file):
             return jresponse('-1','object ftype error',request,400)
-        
-        if file.is_deleted():
-            response_class = HTTPNotFound
-        
+ 
         content_length = file.metadata['Content-Length']
         file.unlinkold()
         file.meta_del()
@@ -646,17 +647,17 @@ class ObjectController(object):
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
+        if src_file.is_deleted():
+            task_db_update(dbpath,'failed','not found',tx_id)
+            return jresponse('-1', 'not found', req,404)
+                
         if os.path.isdir(src_file.data_file):
             return jresponse('-1','object ftype error',req,400)
         
         if not dst_file.cnt_flag:
             task_db_update(dbpath,'failed','container not found',tx_id)
             return jresponse('-1', 'container not found', req,404) 
-        
-        if src_file.is_deleted():
-            task_db_update(dbpath,'failed','not found',tx_id)
-            return jresponse('-1', 'not found', req,404)
-        
+
         if not dst_file.is_deleted():
 
             overwrite = req.headers.get('X-Overwrite','false').lower()
@@ -704,15 +705,15 @@ class ObjectController(object):
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
-        if os.path.isdir(src_file.data_file):
-            return jresponse('-1','object ftype error',req,400)
-        
         if not dst_file.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
         
         if src_file.is_deleted():
             return jresponse('-1', 'not found', req,404)
- 
+         
+        if os.path.isdir(src_file.data_file):
+            return jresponse('-1','object ftype error',req,400)
+
         if not dst_file.is_deleted():
 
             overwrite = req.headers.get('X-Overwrite','false').lower()

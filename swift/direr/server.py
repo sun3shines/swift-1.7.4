@@ -129,13 +129,13 @@ class DirerController(object):
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
+        if broker.is_deleted():
+            return jresponse('-1', 'not found', req,404)
+        
         if not os.path.isdir(broker.datadir):
             return jresponse('-1','object ftype error',req,400)
         
         dirsize = broker.get_data_dir_size()
-        
-        if broker.is_deleted():
-            return jresponse('-1', 'not found', req,404)
         
         broker.delete_db()
         if not broker.is_deleted():
@@ -167,15 +167,15 @@ class DirerController(object):
             return jresponse('-1', 'insufficient storage', req,507)
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
-        
+
+        if broker.is_deleted():
+            return jresponse('-1', 'not found', req,404)
+                
         if not os.path.isdir(broker.datadir):
             return jresponse('-1','object ftype error',req,400)
         
         dirsize = broker.get_data_dir_size()
         
-        if broker.is_deleted():
-            return jresponse('-1', 'not found', req,404)
-    
         broker.reset_db()
         
         object_versions = req.headers.get('x-versions-location')
@@ -212,11 +212,15 @@ class DirerController(object):
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         user_broker = self._get_meta_broker(drive, part, account, recycle_container,user_obj,recycle_uuid)
         
-        if not os.path.isdir(src_broker.datadir):
-            return jresponse('-1','object ftype error',req,400)
-        
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
+                
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
+
+        recursive = req.headers.get('x-recursive') or req.GET.get('recursive')
+        if 'false' == recursive and not src_broker.empty():
+            return jresponse('-1','conflict',req,409)
         
         if not user_broker.is_deleted():
             user_broker.del_dir(user_broker.datadir)
@@ -268,12 +272,12 @@ class DirerController(object):
         src_broker = self._get_meta_broker(drive, part, account, src_container,src_direr,recycle_uuid)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
-        if not os.path.isdir(src_broker.datadir):
-            return jresponse('-1','object ftype error',req,400)
-        
         if src_broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
-        
+                
+        if not os.path.isdir(src_broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
+
         if not dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
                                 
@@ -344,15 +348,15 @@ class DirerController(object):
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
+        if src_broker.is_deleted():
+            return jresponse('-1', 'not found', req,404) 
+                
         if not os.path.isdir(src_broker.datadir):
             return jresponse('-1','object ftype error',req,400)
         
         if not dst_broker.cnt_flag:
             return jresponse('-1', 'container not found', req,404) 
-        
-        if src_broker.is_deleted():
-            return jresponse('-1', 'not found', req,404) 
-        
+
         if not dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
                                 
@@ -397,6 +401,9 @@ class DirerController(object):
         src_broker = self._get_direr_broker(drive, part, account, src_container,src_direr)
         dst_broker = self._get_direr_broker(drive, part, account, dst_container,dst_direr)
         
+        if src_broker.is_deleted():
+            return jresponse('-1', 'not found', req,404)
+                
         if not os.path.isdir(src_broker.datadir):
             return jresponse('-1','object ftype error',req,400)
         
@@ -404,9 +411,7 @@ class DirerController(object):
             return jresponse('-1', 'container not found', req,404) 
         
         dirsize = src_broker.get_data_dir_size()
-        if src_broker.is_deleted():
-            return jresponse('-1', 'not found', req,404)
-        
+
         if not dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
                                 
@@ -504,12 +509,12 @@ class DirerController(object):
         
         broker = self._get_direr_broker(drive, part, account, container,direr)
         
-        if not os.path.isdir(broker.datadir):
-            return jresponse('-1','object ftype error',req,400)
-        
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
-            
+                    
+        if not os.path.isdir(broker.datadir):
+            return jresponse('-1','object ftype error',req,400)
+
         out_content_type = 'application/json'
         
         recursive = req.headers.get('x-recursive') or req.GET.get('recursive')

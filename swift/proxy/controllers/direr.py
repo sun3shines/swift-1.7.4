@@ -141,7 +141,7 @@ class DirerController(Controller):
                            'X-Container-Device': container['device'],
                            'x-ftype':req.GET['ftype'],
                            'Connection': 'close'}
-        
+            new_header['x-recursive']=str(req.GET.get('recursive','False')).lower()
             new_header['X-Account-Host'] = '%(ip)s:%(port)s' % account
             new_header['X-Account-Partition'] = account_partition
             new_header['X-Account-Device'] = self.account_name
