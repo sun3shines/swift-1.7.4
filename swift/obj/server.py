@@ -30,6 +30,10 @@ from contextlib import contextmanager
 import syslog
 import threading
 import multiprocessing
+from cloudweb.userViz.object import otput,otdelete,otcopy,otdeleteRecycle, \
+    otmoveRecycle,otmove
+    
+from cloudweb.userViz.pyMySql import getDb
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -261,6 +265,7 @@ class ObjectController(object):
       
     @public
     def PUT(self, request):
+
         """Handle HTTP PUT requests for the Swift Object Server."""
         start_time = time.time()
         try:
@@ -357,7 +362,7 @@ class ObjectController(object):
             hdata['X-Object-Permisson'] = metadata['X-Object-Permisson']
             
             hdata = json.dumps(hdata)
-        
+        otput(request.path,self.dbconn)
         resp = HTTPCreated(body=hdata,request=request)
         
         return resp
@@ -506,6 +511,8 @@ class ObjectController(object):
         file.meta_del()
         self.account_update(request, account, content_length, add_flag=False)
         
+        otdelete(request.path,self.dbconn)
+        
         resp = response_class(request=request)
         return resp
 
@@ -545,6 +552,7 @@ class ObjectController(object):
             
         user_file.move(src_file.data_file)
         
+        otdeleteRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         
         if user_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -672,7 +680,8 @@ class ObjectController(object):
         ## dst_file.copy(src_file.data_file) ##
         tx_id = req.environ.get('HTTP_X_TRANS_ID') 
         self.copy_action(src_file, dst_file, req,account,dbpath,tx_id)
-
+        otcopy('/'.join([account, src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
+        
         return jresponse('0', '', req,201)
     
     
@@ -731,7 +740,7 @@ class ObjectController(object):
                 return jresponse('-1', 'not found', req,404)
         
         dst_file.move(src_file.data_file)
-        
+        otmove('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
          
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -776,6 +785,7 @@ class ObjectController(object):
         dst_file = DiskFile(self.devices, device, partition, account, dst_container,
                         dst_obj, self.logger, disk_chunk_size=self.disk_chunk_size)
         
+        
         if src_file.is_deleted():
             return jresponse('-1', 'not found', req,404)
         
@@ -793,6 +803,7 @@ class ObjectController(object):
             dst_file.create_dir_object(dst_file.fhr_path)
         
         dst_file.move(src_file.data_file)
+        otmoveRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -862,7 +873,7 @@ class ObjectController(object):
         start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
-        
+        self.dbconn = getDb()
         if not check_utf8(req.path_info):
             res = jresponse('-1', 'invalid utf8', req,412)
         else:
@@ -883,6 +894,7 @@ class ObjectController(object):
                 res = jresponse('-1', 'InternalServerError', req,500)
                  
         trans_time = time.time() - start_time
+        self.dbconn.close()
         
         if req.method in ('PUT', 'DELETE'):
             slow = self.slow - trans_time

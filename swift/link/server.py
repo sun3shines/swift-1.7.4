@@ -27,6 +27,9 @@ from tempfile import mkstemp
 from urllib import unquote
 from contextlib import contextmanager
 
+from cloudweb.userViz.link import lkput
+from cloudweb.userViz.pyMySql import getDb
+
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
     HTTPInternalServerError, HTTPNoContent, HTTPNotFound, \
@@ -154,6 +157,7 @@ class LinkController(object):
             return jresponse('-1', 'conflict', request,409) 
                                 
         dst_file.link(src_file.data_file)
+        lkput('/'.join(['', device, partition, account, dst_container,dst_link]),self.dbconn)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', request,409) 
@@ -171,6 +175,7 @@ class LinkController(object):
             return self.app(env,start_response)
         
         self.logger.txn_id = req.headers.get('x-trans-id', None)
+        self.dbconn = getDb()
         
         if not check_utf8(req.path_info):
             res =jresponse('-1', 'Invalid UTF8', req,412) 
@@ -189,7 +194,7 @@ class LinkController(object):
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'InternalServerError', req,500)
         trans_time = time.time() - start_time
-        
+        self.dbconn.close()
         if req.method in ('PUT', 'DELETE'):
             slow = self.slow - trans_time
             if slow > 0:

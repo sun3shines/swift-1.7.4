@@ -23,6 +23,8 @@ from webob.exc import  HTTPBadGateway, \
     HTTPLengthRequired
 
 from webob import Request
+from cloudweb.userViz.account import atexists
+from cloudweb.userViz.pyMySql import getDb
 
 from swift.common.mx_swob import wsgify
 
@@ -118,7 +120,18 @@ class Userinit(object):
         resp = new_req.get_response(self.app)
             
         return new_req.path,resp
-    
+
+    def account_put(self,req,rdatas):
+ 
+        new_path,resp = self.handle_new_req(req, '' , 'PUT')
+
+        if resp.status_int // 100 == 2:
+            rdatas['success_count'] = rdatas['success_count'] + 1
+        else:
+            rdatas['not_found_count'] = 1 + rdatas['not_found_count']
+            rdatas['failed_files'].append([quote(new_path), resp.status])
+            print 'path:   '+req.path +  '      status:  '+str(resp.status_int) + '  msg: '+resp.body + '  handle' + '  new_path:  '+new_path
+
     def handle_normal(self,req,rdatas):
         
         new_path,resp = self.handle_new_req(req, '/normal' , 'PUT')
@@ -285,10 +298,12 @@ class Userinit(object):
 
             
     def account_exists(self,req):
-        
+
         resp =  self.handle_new_req(req,'/normal','HEAD')[1]
         
         if resp.status_int == HTTP_NOT_FOUND:
+            return False
+        if not atexists(req.path,self.conn):
             return False
         return True
     
@@ -298,7 +313,9 @@ class Userinit(object):
         
         req.accept = 'application/json'
         out_content_type = 'application/json'
-        
+
+        self.account_put(req,rdatas) 
+
         self.handle_normal(req,rdatas)
     
         self.handle_quota(req,rdatas)
@@ -348,21 +365,23 @@ class Userinit(object):
         _,account,container,_ = split_path(req.path, 1, 4, True)
 
         dbpath = '%s/%s.db' % (self.devices,account)
+
+        resp = self.app
+        self.conn = getDb()
         if 'register' == container:
             print dbpath+'register'
             if not self.account_exists(req):
-                print dbpath+'start'
                 dbpath = '%s/%s.db' % (self.devices,account)
                 db_init(dbpath)
                 task_db_init(dbpath)
-                print dbpath+'end'
-                return self.handle_register(req)
+                resp = self.handle_register(req)
             else:
-                return jresponse('-1','account user alread exists',req,400)
+                resp = jresponse('-1','account user alread exists',req,400)
         else:
             if not self.account_exists(req):
-                return jresponse('-1','account user not found',req,404)
-        return self.app
+                resp = jresponse('-1','account user not found',req,404)
+        self.conn.close()
+        return resp
 
 
 def filter_factory(global_conf, **local_conf):

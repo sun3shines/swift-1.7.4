@@ -28,6 +28,9 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPInternalServerError, HTTPNoContent, \
     HTTPNotFound, HTTPPreconditionFailed, HTTPMethodNotAllowed
 
+from cloudweb.userViz.container import cntdelete,cntput
+from cloudweb.userViz.pyMySql import getDb
+
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \
     TRUE_VALUES, validate_device_partition, json
@@ -135,7 +138,7 @@ class ContainerController(object):
             validate_device_partition(drive, part)
         except ValueError, err:
             return jresponse('-1', 'bad request', req,400)
-         
+        print req.path     
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
             return jresponse('-1', 'Missing timestamp', req, 400)
@@ -158,6 +161,7 @@ class ContainerController(object):
             existed = float(broker.get_info()['put_timestamp']) and \
                       not broker.is_deleted()
             broker.delete_db(req.headers['X-Timestamp'])
+            cntdelete(req.path,self.dbconn)
             if not broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409) 
             resp = self.account_update(req, account, container, broker)
@@ -221,6 +225,8 @@ class ContainerController(object):
             resp = self.account_update(req, account, container, broker)
             if resp:
                 return resp
+
+            cntput(req.path,self.dbconn)
             return jresponse('0', '', req,201) 
 
     @public
@@ -401,6 +407,8 @@ class ContainerController(object):
         start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
+        self.dbconn = getDb()
+        
         if not check_utf8(req.path_info):
             res = jresponse('-1','Invalid UTF8',req,412)
         else:
@@ -419,7 +427,7 @@ class ContainerController(object):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'InternalServerError', req,500)
-        
+        self.dbconn.close()
         return res(env, start_response)
 
 

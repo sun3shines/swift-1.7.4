@@ -81,9 +81,10 @@ class AccountController(Controller):
             
         return resp
 
-    
+        
     @public
     def PUT(self, req):
+
         """HTTP PUT request handler."""
         if not self.app.allow_account_management:
             return jresponse('-1','method not allowed',req,405)

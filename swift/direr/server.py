@@ -29,6 +29,11 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPInternalServerError, HTTPNoContent, \
     HTTPNotFound, HTTPPreconditionFailed, HTTPMethodNotAllowed
 
+from cloudweb.userViz.dir import drdelete,drreset,drput,drdeleteRecycle, \
+    drmoveRecycle,drmove,drcopy
+    
+from cloudweb.userViz.pyMySql import getDb
+
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \
     TRUE_VALUES, validate_device_partition, json
@@ -139,6 +144,8 @@ class DirerController(object):
         dirsize = broker.get_data_dir_size()
         
         broker.delete_db()
+        drdelete(req.path,self.dbconn)
+        
         if not broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
         
@@ -149,6 +156,7 @@ class DirerController(object):
             if not ver_broker.is_deleted():
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
+                drdelete('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 dirsize = versize + dirsize
                                 
         self.account_update(req, account, dirsize, add_flag=False)
@@ -178,6 +186,7 @@ class DirerController(object):
         dirsize = broker.get_data_dir_size()
         
         broker.reset_db()
+        drreset(req.path,self.dbconn)
         
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -186,6 +195,7 @@ class DirerController(object):
             if not ver_broker.is_deleted():
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
+                drreset('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 dirsize = versize + dirsize
         self.account_update(req, account, dirsize, add_flag=False)
                      
@@ -230,6 +240,7 @@ class DirerController(object):
             user_broker.create_dir_object(user_broker.fhr_path)
             
         user_broker.move(src_broker.datadir)
+        drdeleteRecycle('/'.join([account,src_container,src_direr]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         
         if user_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -286,6 +297,7 @@ class DirerController(object):
             dst_broker.create_dir_object(dst_broker.fhr_path)
             
         dst_broker.move(src_broker.datadir)
+        drmoveRecycle('/'.join([account, src_container,src_direr,recycle_uuid]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         
         if dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -318,8 +330,7 @@ class DirerController(object):
             broker.update_put_timestamp()
             if broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409)
-            
-        
+        drput(req.path,self.dbconn)
         return jresponse('0', '', req,201) 
         
     @public
@@ -362,6 +373,7 @@ class DirerController(object):
             return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.move(src_broker.datadir)
+        drmove('/'.join([account, src_container,src_direr]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         
         if dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -377,6 +389,7 @@ class DirerController(object):
                     dst_broker.delete_db()
                                 
                 dst_broker.move(ver_broker.datadir)
+                drmove('/'.join([account, lcontainer,src_direr]),'/'.join([account, lcontainer,dst_direr]),self.dbconn)
                 
         return jresponse('0', '', req,201)
     
@@ -431,6 +444,7 @@ class DirerController(object):
             return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.copy(src_broker.datadir)
+        drcopy('/'.join([account, src_container,src_direr]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         
         if dst_broker.is_deleted():
             task_db_update(dbpath,'failed','conflict',tx_id)
@@ -449,7 +463,8 @@ class DirerController(object):
                 dst_broker.copy(ver_broker.datadir)
                 dstsize = dst_broker.get_data_dir_size()
                 dirsize = dstsize + dirsize
-                        
+                drcopy('/'.join([account, lcontainer,src_direr]),'/'.join([account, lcontainer,dst_direr]),self.dbconn)
+                       
         self.account_update(req, account, dirsize, add_flag=True)
         task_db_update(dbpath,'success','',tx_id)
         return jresponse('0', '', req,201)
@@ -553,6 +568,8 @@ class DirerController(object):
             return self.app(env,start_response)
 
         self.logger.txn_id = req.headers.get('x-trans-id', None)
+        self.dbconn = getDb()
+        
         if not check_utf8(req.path_info):
             res = jresponse('-1', 'invalid UTF8', req,412)
             
@@ -573,7 +590,9 @@ class DirerController(object):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'internal server error', req,500)
-
+                
+        self.dbconn.close()
+        
         return res(env, start_response)
 
 

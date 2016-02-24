@@ -28,6 +28,9 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
     HTTPMethodNotAllowed, HTTPNoContent, HTTPNotFound, \
     HTTPPreconditionFailed, HTTPConflict,HTTPOk
 
+from cloudweb.userViz.account import atdelete,atput
+from cloudweb.userViz.pyMySql import getDb
+
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
     validate_device_partition, json
@@ -74,6 +77,7 @@ class AccountController(object):
             return jresponse('-1', 'not found', req,404)
         
         broker.delete_db(req.headers['x-timestamp'])
+        atdelete(req.path,self.dbconn)
         return jresponse('0', '', req,204)
 
     @public
@@ -124,7 +128,7 @@ class AccountController(object):
                 if key.lower().startswith('x-account-meta-'))
             if metadata:
                 broker.update_metadata(metadata)
-            
+            atput(req.path,self.dbconn)
             return jresponse('0', '', req,201)
 
     @public
@@ -309,6 +313,8 @@ class AccountController(object):
         req = Request(env)
         
         self.logger.txn_id = req.headers.get('x-trans-id', None)
+        self.dbconn = getDb()
+        
         if not check_utf8(req.path_info):
             res = jresponse('-1', 'invalid utf8', req,412)
         else:
@@ -331,7 +337,7 @@ class AccountController(object):
         if res.headers.get('x-container-timestamp') is not None:
             additional_info += 'x-container-timestamp: %s' % \
                 res.headers['x-container-timestamp']
-        
+        self.dbconn.close()
         return res(env, start_response)
 
 

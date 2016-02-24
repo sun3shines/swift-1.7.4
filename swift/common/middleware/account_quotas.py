@@ -32,7 +32,7 @@ class AccountQuotaMiddleware(object):
 
     @wsgify
     def __call__(self, request):
-       
+
         if request.method not in ("PUT","COPY"):
             return self.app
 
