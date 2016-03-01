@@ -29,10 +29,10 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPInternalServerError, HTTPNoContent, \
     HTTPNotFound, HTTPPreconditionFailed, HTTPMethodNotAllowed
 
-from cloudweb.userViz.dir import drdelete,drreset,drput,drdeleteRecycle, \
+from cloudweb.db.dir import drdelete,drreset,drput,drdeleteRecycle, \
     drmoveRecycle,drmove,drcopy
     
-from cloudweb.userViz.pyMySql import getDb
+from cloudweb.db.mysql import getDb
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \

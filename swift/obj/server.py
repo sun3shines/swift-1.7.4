@@ -30,10 +30,10 @@ from contextlib import contextmanager
 import syslog
 import threading
 import multiprocessing
-from cloudweb.userViz.object import otput,otdelete,otcopy,otdeleteRecycle, \
+from cloudweb.db.object import otput,otdelete,otcopy,otdeleteRecycle, \
     otmoveRecycle,otmove
     
-from cloudweb.userViz.pyMySql import getDb
+from cloudweb.db.mysql import getDb
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \

@@ -23,8 +23,8 @@ from webob.exc import  HTTPBadGateway, \
     HTTPLengthRequired
 
 from webob import Request
-from cloudweb.userViz.account import atexists
-from cloudweb.userViz.pyMySql import getDb
+from cloudweb.db.account import atexists
+from cloudweb.db.mysql import getDb
 
 from swift.common.mx_swob import wsgify
 

@@ -28,8 +28,8 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
     HTTPMethodNotAllowed, HTTPNoContent, HTTPNotFound, \
     HTTPPreconditionFailed, HTTPConflict,HTTPOk
 
-from cloudweb.userViz.account import atdelete,atput
-from cloudweb.userViz.pyMySql import getDb
+from cloudweb.db.account import atdelete,atput
+from cloudweb.db.mysql import getDb
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \

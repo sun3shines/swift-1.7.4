@@ -27,8 +27,8 @@ from tempfile import mkstemp
 from urllib import unquote
 from contextlib import contextmanager
 
-from cloudweb.userViz.link import lkput
-from cloudweb.userViz.pyMySql import getDb
+from cloudweb.db.link import lkput
+from cloudweb.db.mysql import getDb
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
