@@ -34,6 +34,7 @@ from cloudweb.db.object import otput,otdelete,otcopy,otdeleteRecycle, \
     otmoveRecycle,otmove
     
 from cloudweb.db.mysql import getDb
+from cloudweb.db.firewall import otValid
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -267,7 +268,7 @@ class ObjectController(object):
     def PUT(self, request):
 
         """Handle HTTP PUT requests for the Swift Object Server."""
-        start_time = time.time()
+        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -371,7 +372,9 @@ class ObjectController(object):
     def GET(self, request):
         # request is global , can not be modify
         # response can be modify
-        start_time = time.time()
+        if not otValid(request.path,self.dbconn):
+            return jresponse('-1','file state invalid',request,403)
+        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -421,6 +424,9 @@ class ObjectController(object):
     @public
     def HEAD(self, request):
         
+        if not otValid(request.path,self.dbconn):
+            return jresponse('-1','file state invalid',request,403)
+        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -453,7 +459,10 @@ class ObjectController(object):
     
     @public
     def META(self, request):
-        
+
+        if not otValid(request.path,self.dbconn):
+            return jresponse('-1','file state invalid',request,403)
+                
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -485,7 +494,10 @@ class ObjectController(object):
     @public
     def DELETE(self, request):
         """Handle HTTP DELETE requests for the Swift Object Server."""
-        start_time = time.time()
+        
+        if not otValid(request.path,self.dbconn):
+            return jresponse('-1','file state invalid',request,403)
+        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -518,6 +530,10 @@ class ObjectController(object):
 
     @public
     def DELETE_RECYCLE(self, req):
+        
+        if not otValid(req.path,self.dbconn):
+            return jresponse('-1','file state invalid',req,403)
+        
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -615,7 +631,10 @@ class ObjectController(object):
 
     @public
     def COPY(self, req):
-        
+
+        if not otValid(req.path,self.dbconn):
+            return jresponse('-1','file state invalid',req,403)
+                
         device, partition, accountname = split_path(unquote(req.path), 3, 3, True)
         accountname = accountname.split('/')[0]
         dbpath = '%s/%s.db' % (self.devices,accountname)
@@ -687,7 +706,10 @@ class ObjectController(object):
     
     @public
     def MOVE(self, req):
-           
+
+        if not otValid(req.path,self.dbconn):
+            return jresponse('-1','file state invalid',req,403)
+                   
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -756,7 +778,10 @@ class ObjectController(object):
 
     @public
     def MOVE_RECYCLE(self, req):
-           
+
+        if not otValid(req.path,self.dbconn):
+            return jresponse('-1','file state invalid',req,403)
+                   
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -818,7 +843,10 @@ class ObjectController(object):
     
     @public
     def POST(self, request):
-        
+
+        if not otValid(request.path,self.dbconn):
+            return jresponse('-1','file state invalid',request,403)
+                
         """Handle HTTP POST requests for the Swift Object Server."""
         start_time = time.time()
         try:
@@ -886,8 +914,7 @@ class ObjectController(object):
                     res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
-                    if req.method == 'DELETE_RECYCLE':
-                        print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
+
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})

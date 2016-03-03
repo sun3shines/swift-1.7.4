@@ -583,8 +583,6 @@ class DirerController(object):
                     res = jresponse('-1', 'method not allowed', req,405)
                 else:
                     res = method(req)
-                    # if req.method == 'PUT':
-                    #    print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
 
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'

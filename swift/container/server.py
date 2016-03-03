@@ -138,7 +138,7 @@ class ContainerController(object):
             validate_device_partition(drive, part)
         except ValueError, err:
             return jresponse('-1', 'bad request', req,400)
-        print req.path     
+          
         if 'x-timestamp' not in req.headers or \
                     not check_float(req.headers['x-timestamp']):
             return jresponse('-1', 'Missing timestamp', req, 400)
@@ -421,8 +421,7 @@ class ContainerController(object):
                     res = jresponse('-1', 'method not allowed', req,405) 
                 else:
                     res = method(req)
-                    # if req.method == 'PUT':
-                    #    print 'path:   '+req.path +  '      status:  '+str(res.status_int) + '  msg: '+res.body
+
             except (Exception, Timeout):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})

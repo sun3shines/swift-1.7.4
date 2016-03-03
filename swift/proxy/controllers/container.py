@@ -81,7 +81,6 @@ class ContainerController(Controller):
     @public
     @delay_denial
     def HEAD(self, req):
-        
         return self.GETorHEAD(req)
 
     @public

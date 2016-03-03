@@ -30,6 +30,7 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
 
 from cloudweb.db.account import atdelete,atput
 from cloudweb.db.mysql import getDb
+from cloudweb.db.firewall import atValid
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
@@ -61,7 +62,9 @@ class AccountController(object):
     @public
     def DELETE(self, req):
         """Handle HTTP DELETE request."""
-        start_time = time.time()
+        
+        if not atValid(req.path,self.dbconn):
+            return jresponse('-1','account state invalid',req,403)
         
         try:
             drive, part, account = split_path(unquote(req.path), 3)
@@ -83,7 +86,7 @@ class AccountController(object):
     @public
     def PUT(self, req):
         """Handle HTTP PUT request."""
-        start_time = time.time()
+        
         try:
             drive, part, account, container = split_path(unquote(req.path),
                                                          3, 4)
@@ -134,7 +137,7 @@ class AccountController(object):
     @public
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
-        start_time = time.time()
+        
         try:
             drive, part, account, container = split_path(unquote(req.path),
                                                          3, 4)
@@ -171,7 +174,9 @@ class AccountController(object):
     @public
     def META(self, req):
         
-        start_time = time.time()
+        if not atValid(req.path,self.dbconn):
+            return jresponse('-1','account state invalid',req,403)
+        
         try:
             drive, part, account, container = split_path(unquote(req.path),
                                                          3, 4)
@@ -215,7 +220,9 @@ class AccountController(object):
     def GET(self, req):
         """Handle HTTP GET request."""
         
-        start_time = time.time()
+        if not atValid(req.path,self.dbconn):
+            return jresponse('-1','account state invalid',req,403)
+        
         try:
             drive, part, account = split_path(unquote(req.path), 3)
             validate_device_partition(drive, part)
@@ -281,7 +288,9 @@ class AccountController(object):
     def POST(self, req):
         
         """Handle HTTP POST request."""
-        start_time = time.time()
+        if not atValid(req.path,self.dbconn):
+            return jresponse('-1','account state invalid',req,403)
+        
         try:
             drive, part, account = split_path(unquote(req.path), 3)
             validate_device_partition(drive, part)
@@ -309,9 +318,9 @@ class AccountController(object):
         return jresponse('0', '', req,204)
 
     def __call__(self, env, start_response):
+
         start_time = time.time()
         req = Request(env)
-        
         self.logger.txn_id = req.headers.get('x-trans-id', None)
         self.dbconn = getDb()
         

@@ -219,7 +219,6 @@ class Controller(object):
                   or (None, None, None) if it does not exist
         """
         partition, nodes = self.app.account_ring.get_nodes(account)
-        # print 'account  ---------------' + str(partition)+'   '+str(nodes) 
         result_code = 0
         
         attempts_left = len(nodes)
@@ -257,7 +256,6 @@ class Controller(object):
                     _('Trying to get account info for %s') % path)
         if result_code == HTTP_NOT_FOUND and autocreate:
             if len(account) > MAX_ACCOUNT_NAME_LENGTH:
-                # print 'account xxxxxxxxxxxxxxx2'
                 return None, None
             headers = {'X-Timestamp': normalize_timestamp(time.time()),
                        'X-Trans-Id': self.trans_id,
@@ -269,11 +267,8 @@ class Controller(object):
             if not is_success(resp.status_int):
                 self.app.logger.warning('Could not autocreate account %r' % \
                                         path)
-                # print 'account xxxxxxxxxxxxxxx1'
                 return None, None
             result_code = HTTP_OK
-
-        # print 'account  result_code '+str(result_code) + '    conn_time      '+str(self.app.conn_timeout)
 
         if result_code == HTTP_OK:
             return partition, nodes
@@ -293,7 +288,7 @@ class Controller(object):
         
         partition, nodes = self.app.container_ring.get_nodes(account, container)
         path = '/%s/%s' % (account, container)
-        # print 'container  ---------------' + str(partition)+'   '+str(nodes) 
+        
         if not self.account_info(account, autocreate=account_autocreate)[1]:
             return None, None,None
         result_code = 0
@@ -333,7 +328,6 @@ class Controller(object):
                 self.exception_occurred(node, _('Container'),
                     _('Trying to get container info for %s') % path)
        
-        # print 'container  result_code '+str(result_code) + '    conn_time      '+str(self.app.conn_timeout) 
         if result_code == HTTP_OK:
             return partition, nodes,versions
         return None, None,None

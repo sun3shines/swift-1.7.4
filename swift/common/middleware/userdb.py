@@ -228,16 +228,10 @@ def operations_main():
     db_init(dbpath)
     db_insert(dbpath,'tx1','path2','type3','method4','tenant5','url6','time7','','')
     db_insert(dbpath,'tx2','path5','type7','method4','tenant5','url6','time7','','')
-    print 'insert'
-    print db_values(dbpath)
     
     db_update(dbpath,'status3','comment3','tx1')
-    print 'update'
-    print db_values(dbpath)
     
     db_delete(dbpath)
-    print 'delete'
-    print db_values(dbpath)
 
 def tasks_main():
     account = 'zhu__feng006'
@@ -245,16 +239,10 @@ def tasks_main():
     task_db_init(dbpath)
     task_db_insert(dbpath,'tx1','time7','','')
     task_db_insert(dbpath,'tx2','time7','','')
-    print 'insert'
-    print task_db_values(dbpath,'tx1')
     
     task_db_update(dbpath,'status3','comment3','tx1')
-    print 'update'
-    print task_db_values(dbpath,'tx1')
     
     task_db_delete(dbpath,'tx1')
-    print 'delete'
-    print task_db_values(dbpath,'tx1')
 
 if __name__ == '__main__':
     ## operations_main() ##

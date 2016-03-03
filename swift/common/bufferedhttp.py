@@ -144,10 +144,9 @@ def http_connect(ipaddr, port, device, partition, method, path,
             path = path.encode("utf-8")
         except UnicodeError:
             pass   # what should I do?
-    # xxpath = path
+
     path = quote('/' + device + '/' + str(partition) + path)
-    # if  xxpath.find(device) == -1:
-    #    print 'http_connect:  ' + path
+
     if query_string:
         path += '?' + query_string
     conn.path = path
@@ -213,10 +212,6 @@ def jresponse(status,msg,req,status_int,headers=None,statusstr='',param=None):
         
     if status != '0' and req.method == 'PUT': 
         pass
-        # syslog.syslog(syslog.LOG_ERR,'jresponse:   status: ' + str(status_int)+'  path: '+str(req.path)+'  msg: '+str(msg) + '  tx_id:  '+ req.environ.get('swift.trans_id',''))
-        # print 'jresponse:   status: ' + str(status_int)+'  path: '+str(req.path)+'  msg: '+str(msg) + '  tx_id:  '+ req.environ.get('swift.trans_id','') + '  method:  '+str(req.method) + '  headers:  '+str(req.headers) + '  params:  '+str(req.GET)
-        # traceback.print_stack() 
-        # syslog.syslog(syslog.LOG_ERR,'jresponse:   '+str(traceback.extract_stack() ))     
-        # syslog.syslog(syslog.LOG_ERR,'jresponse:   '+str(traceback.print_stack() ))
+
     return ret
     

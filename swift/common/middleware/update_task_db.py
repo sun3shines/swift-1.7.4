@@ -163,7 +163,6 @@ def tasks_main():
         if fn.startswith('AUTH_') and fn.endswith('.db'):
             dbpath = './%s' % (fn)
             task_db_init(dbpath)
-            print fn
 
 if __name__ == '__main__':
     tasks_main()

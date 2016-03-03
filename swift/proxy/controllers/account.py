@@ -24,6 +24,7 @@ class AccountController(Controller):
         self.account_name = unquote(account_name)
 
     def GETorHEAD(self, req):
+
         """Handler for HTTP GET/HEAD requests."""
         partition, nodes = self.app.account_ring.get_nodes(self.account_name)
         shuffle(nodes)
