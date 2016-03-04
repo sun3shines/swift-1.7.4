@@ -29,6 +29,7 @@ from contextlib import contextmanager
 
 from cloudweb.db.link import lkput
 from cloudweb.db.table.mysql import getDb
+from cloudweb.db.message.link import msgPut
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -158,6 +159,7 @@ class LinkController(object):
                                 
         dst_file.link(src_file.data_file)
         lkput('/'.join(['', device, partition, account, dst_container,dst_link]),self.dbconn)
+        msgPut(self.dbconn,request.path,dst_link.split('/')[-1])
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', request,409) 

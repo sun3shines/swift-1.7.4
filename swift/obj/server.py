@@ -35,6 +35,8 @@ from cloudweb.db.object import otput,otdelete,otcopy,otdeleteRecycle, \
     
 from cloudweb.db.table.mysql import getDb
 from cloudweb.db.firewall import otValid
+from cloudweb.db.message.object import msgPut,msgGet,msgHead,msgMeta,msgDelete, \
+    msgDeleteRecycle, msgMove,msgCopy,msgMoveRecycle,msgPost
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -363,9 +365,11 @@ class ObjectController(object):
             hdata['X-Object-Permisson'] = metadata['X-Object-Permisson']
             
             hdata = json.dumps(hdata)
+            
         otput(request.path,self.dbconn)
-        resp = HTTPCreated(body=hdata,request=request)
+        msgPut(self.dbconn,request.path)
         
+        resp = HTTPCreated(body=hdata,request=request)
         return resp
 
     @public
@@ -524,6 +528,7 @@ class ObjectController(object):
         self.account_update(request, account, content_length, add_flag=False)
         
         otdelete(request.path,self.dbconn)
+        msgDelete(self.dbconn,request.path)
         
         resp = response_class(request=request)
         return resp
@@ -569,6 +574,7 @@ class ObjectController(object):
         user_file.move(src_file.data_file)
         
         otdeleteRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
+        msgDeleteRecycle(self.dbconn,req.path)
         
         if user_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -699,7 +705,9 @@ class ObjectController(object):
         ## dst_file.copy(src_file.data_file) ##
         tx_id = req.environ.get('HTTP_X_TRANS_ID') 
         self.copy_action(src_file, dst_file, req,account,dbpath,tx_id)
+        
         otcopy('/'.join([account, src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
+        msgCopy(self.dbconn,req.path,dst_obj.split('/')[-1])
         
         return jresponse('0', '', req,201)
     
@@ -763,7 +771,8 @@ class ObjectController(object):
         
         dst_file.move(src_file.data_file)
         otmove('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
-         
+        msgMove(self.dbconn,req.path,dst_obj.split('/')[-1])
+        
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
             
@@ -829,6 +838,7 @@ class ObjectController(object):
         
         dst_file.move(src_file.data_file)
         otmoveRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
+        msgMoveRecycle(self.dbconn,req.path)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)

@@ -32,6 +32,7 @@ from cloudweb.db.account import atdelete,atput
 from cloudweb.db.table.mysql import getDb
 from cloudweb.db.firewall import atValid
 from cludweb.db.user import urPut
+from cloudweb.db.message.account import msgPut,msgDelete,msgHead,msgGet,msgMeta,msgPost
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
@@ -82,6 +83,8 @@ class AccountController(object):
         
         broker.delete_db(req.headers['x-timestamp'])
         atdelete(req.path,self.dbconn)
+        msgDelete(self.dbconn,req.path)
+        
         return jresponse('0', '', req,204)
 
     @public
@@ -134,7 +137,8 @@ class AccountController(object):
                 broker.update_metadata(metadata)
                 
             atput(req.path,self.dbconn)
-            urPut(req.path,self.dbconn)
+            urPut(self.dbconn,req.path)
+            msgPut(self.dbconn,req.path)
             
             return jresponse('0', '', req,201)
 

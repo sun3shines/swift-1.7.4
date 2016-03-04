@@ -30,6 +30,7 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
 
 from cloudweb.db.container import cntdelete,cntput
 from cloudweb.db.table.mysql import getDb
+from cloudweb.db.message.container import msgPut,msgDelete,msgHead,msgMeta,msgGet,msgPost
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \
@@ -161,7 +162,10 @@ class ContainerController(object):
             existed = float(broker.get_info()['put_timestamp']) and \
                       not broker.is_deleted()
             broker.delete_db(req.headers['X-Timestamp'])
+            
             cntdelete(req.path,self.dbconn)
+            msgDelete(self.dbconn,req.path)
+            
             if not broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409) 
             resp = self.account_update(req, account, container, broker)
@@ -227,6 +231,8 @@ class ContainerController(object):
                 return resp
 
             cntput(req.path,self.dbconn)
+            msgPut(self.dbconn,req.path)
+            
             return jresponse('0', '', req,201) 
 
     @public
