@@ -24,7 +24,7 @@ from webob.exc import  HTTPBadGateway, \
 
 from webob import Request
 from cloudweb.db.account import atexists
-from cloudweb.db.mysql import getDb
+from cloudweb.db.table.mysql import getDb
 
 from swift.common.mx_swob import wsgify
 

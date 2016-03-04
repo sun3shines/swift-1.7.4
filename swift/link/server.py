@@ -28,7 +28,7 @@ from urllib import unquote
 from contextlib import contextmanager
 
 from cloudweb.db.link import lkput
-from cloudweb.db.mysql import getDb
+from cloudweb.db.table.mysql import getDb
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \

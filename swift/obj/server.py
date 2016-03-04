@@ -33,7 +33,7 @@ import multiprocessing
 from cloudweb.db.object import otput,otdelete,otcopy,otdeleteRecycle, \
     otmoveRecycle,otmove
     
-from cloudweb.db.mysql import getDb
+from cloudweb.db.table.mysql import getDb
 from cloudweb.db.firewall import otValid
 
 from webob import Request, Response, UTC

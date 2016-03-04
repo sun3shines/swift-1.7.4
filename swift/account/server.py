@@ -29,8 +29,9 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
     HTTPPreconditionFailed, HTTPConflict,HTTPOk
 
 from cloudweb.db.account import atdelete,atput
-from cloudweb.db.mysql import getDb
+from cloudweb.db.table.mysql import getDb
 from cloudweb.db.firewall import atValid
+from cludweb.db.user import urPut
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
@@ -131,7 +132,10 @@ class AccountController(object):
                 if key.lower().startswith('x-account-meta-'))
             if metadata:
                 broker.update_metadata(metadata)
+                
             atput(req.path,self.dbconn)
+            urPut(req.path,self.dbconn)
+            
             return jresponse('0', '', req,201)
 
     @public

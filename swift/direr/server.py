@@ -32,7 +32,7 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
 from cloudweb.db.dir import drdelete,drreset,drput,drdeleteRecycle, \
     drmoveRecycle,drmove,drcopy
     
-from cloudweb.db.mysql import getDb
+from cloudweb.db.table.mysql import getDb
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \
