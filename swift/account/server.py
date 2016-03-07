@@ -31,7 +31,7 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
 from cloudweb.db.account import atdelete,atput
 from cloudweb.db.table.mysql import getDb
 from cloudweb.db.firewall import atValid
-from cludweb.db.user import urPut
+from cloudweb.db.user import urPut
 from cloudweb.db.message.account import msgPut,msgDelete,msgHead,msgGet,msgMeta,msgPost
 
 from swift.common.utils import get_logger, get_param, hash_path, public, \
