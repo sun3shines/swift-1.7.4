@@ -145,8 +145,9 @@ class DirerController(object):
         dirsize = broker.get_data_dir_size()
         
         broker.delete_db()
-        drdelete(req.path,self.dbconn)
         msgDelete(self.dbconn,req.path)
+        drdelete(req.path,self.dbconn)
+        
         if not broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
         
@@ -157,8 +158,8 @@ class DirerController(object):
             if not ver_broker.is_deleted():
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
-                drdelete('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 msgDelete(self.dbconn,'/'.join(['',drive,part,account,lcontainer,direr]))
+                drdelete('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 dirsize = versize + dirsize
                                 
         self.account_update(req, account, dirsize, add_flag=False)
@@ -188,8 +189,8 @@ class DirerController(object):
         dirsize = broker.get_data_dir_size()
         
         broker.reset_db()
-        drreset(req.path,self.dbconn)
         msgReset(self.dbconn,req.path)
+        drreset(req.path,self.dbconn)
         
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -199,8 +200,8 @@ class DirerController(object):
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
                 
-                drreset('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 msgReset(self.dbconn,'/'.join(['',drive,part,account,lcontainer,direr]))
+                drreset('/'.join(['',drive,part,account,lcontainer,direr]),self.dbconn)
                 
                 dirsize = versize + dirsize
         self.account_update(req, account, dirsize, add_flag=False)
@@ -246,8 +247,8 @@ class DirerController(object):
             user_broker.create_dir_object(user_broker.fhr_path)
             
         user_broker.move(src_broker.datadir)
-        drdeleteRecycle('/'.join([account,src_container,src_direr]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         msgDeleteRecycle(self.dbconn,req.path)
+        drdeleteRecycle('/'.join([account,src_container,src_direr]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         
         if user_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -304,8 +305,8 @@ class DirerController(object):
             dst_broker.create_dir_object(dst_broker.fhr_path)
             
         dst_broker.move(src_broker.datadir)
-        drmoveRecycle('/'.join([account, src_container,src_direr,recycle_uuid]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         msgMoveRecycle(self.dbconn,req.path)
+        drmoveRecycle('/'.join([account, src_container,src_direr,recycle_uuid]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         
         if dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -383,8 +384,8 @@ class DirerController(object):
             return jresponse('-1', 'conflict', req,409)
                                 
         dst_broker.move(src_broker.datadir)
-        drmove('/'.join([account, src_container,src_direr]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         msgMove(self.dbconn,req.path,dst_direr.split('/')[-1])
+        drmove('/'.join([account, src_container,src_direr]),'/'.join([account, dst_container,dst_direr]),self.dbconn)
         
         if dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)

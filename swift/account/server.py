@@ -82,8 +82,8 @@ class AccountController(object):
             return jresponse('-1', 'not found', req,404)
         
         broker.delete_db(req.headers['x-timestamp'])
-        atdelete(req.path,self.dbconn)
         msgDelete(self.dbconn,req.path)
+        atdelete(req.path,self.dbconn)
         
         return jresponse('0', '', req,204)
 

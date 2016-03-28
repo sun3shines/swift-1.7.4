@@ -527,8 +527,8 @@ class ObjectController(object):
         file.meta_del()
         self.account_update(request, account, content_length, add_flag=False)
         
-        otdelete(request.path,self.dbconn)
         msgDelete(self.dbconn,request.path)
+        otdelete(request.path,self.dbconn)
         
         resp = response_class(request=request)
         return resp
@@ -573,8 +573,8 @@ class ObjectController(object):
             
         user_file.move(src_file.data_file)
         
-        otdeleteRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         msgDeleteRecycle(self.dbconn,req.path)
+        otdeleteRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         
         if user_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -770,8 +770,8 @@ class ObjectController(object):
                 return jresponse('-1', 'not found', req,404)
         
         dst_file.move(src_file.data_file)
-        otmove('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         msgMove(self.dbconn,req.path,dst_obj.split('/')[-1])
+        otmove('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -837,8 +837,8 @@ class ObjectController(object):
             dst_file.create_dir_object(dst_file.fhr_path)
         
         dst_file.move(src_file.data_file)
-        otmoveRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         msgMoveRecycle(self.dbconn,req.path)
+        otmoveRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)

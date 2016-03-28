@@ -163,8 +163,8 @@ class ContainerController(object):
                       not broker.is_deleted()
             broker.delete_db(req.headers['X-Timestamp'])
             
-            cntdelete(req.path,self.dbconn)
             msgDelete(self.dbconn,req.path)
+            cntdelete(req.path,self.dbconn)
             
             if not broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409) 
