@@ -71,7 +71,7 @@ class AccountController(object):
             return jresponse('-1', 'not found', req,404)
         
         broker.delete_db(req.headers['x-timestamp'])
-        
+        req.environ.update({'http_dict':{'request_path':req.path}})
         return jresponse('0', '', req,204)
 
     @public
@@ -122,7 +122,7 @@ class AccountController(object):
                 if key.lower().startswith('x-account-meta-'))
             if metadata:
                 broker.update_metadata(metadata)
-            req.environ.update({'db_cloudfs_dict':{'xxxx':'xxxtest'}})
+            req.environ.update({'http_dict':{'request_path':req.path}})
             return jresponse('0', '', req,201)
 
     @public

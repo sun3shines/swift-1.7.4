@@ -358,7 +358,7 @@ class ObjectController(object):
             hdata['X-Object-Permisson'] = metadata['X-Object-Permisson']
             
             hdata = json.dumps(hdata)
-            
+        request.environ.update({'http_dict':{'request_path':request.path}})
         resp = HTTPCreated(body=hdata,request=request)
         return resp
 
@@ -504,6 +504,7 @@ class ObjectController(object):
         file.meta_del()
         self.account_update(request, account, content_length, add_flag=False)
         
+        request.environ.update({'http_dict':{'request_path':request.path}})
         resp = response_class(request=request)
         return resp
 
@@ -558,6 +559,10 @@ class ObjectController(object):
             user_file.put(fd, tmppath,user_file.metadata, extension='.meta')
             src_file.meta_del()
             
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'srcNewPath':'/'.join([account,src_container,src_obj]),
+                                         'dstNewPath':'/'.join([account,recycle_container,user_obj])}})
+                                                                
         resp = jresponse('0', '', req,204)
         return resp
     
@@ -670,7 +675,11 @@ class ObjectController(object):
         ## dst_file.copy(src_file.data_file) ##
         tx_id = req.environ.get('HTTP_X_TRANS_ID') 
         self.copy_action(src_file, dst_file, req,account,dbpath,tx_id)
-        
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'dstName':dst_obj.split('/')[-1],
+                                         'srcNewPath':'/'.join([account, src_container,src_obj]),
+                                         'dstNewPath':'/'.join([account,dst_container,dst_obj])}})
+                
         return jresponse('0', '', req,201)
     
     
@@ -739,6 +748,12 @@ class ObjectController(object):
             dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'dstName':dst_obj.split('/')[-1],
+                                         'srcNewPath':'/'.join([account, src_container,src_obj]),
+                                         'dstNewPath':'/'.join([account,dst_container,dst_obj])}})
+                
+                            
         return jresponse('0', '', req,201)
     
 
@@ -801,6 +816,10 @@ class ObjectController(object):
             dst_file.put(fd, tmppath,dst_file.metadata, extension='.meta')
             src_file.meta_del()
             
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'srcNewPath':'/'.join([account,src_container,src_obj]),
+                                         'dstNewPath':'/'.join([account,dst_container,dst_obj])}})
+                                                                            
         return jresponse('0', '', req,201)
     
     @public

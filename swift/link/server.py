@@ -156,8 +156,11 @@ class LinkController(object):
         dst_file.link(src_file.data_file)
         
         if dst_file.is_deleted():
-            return jresponse('-1', 'conflict', request,409) 
-            
+            return jresponse('-1', 'conflict', request,409)
+         
+        request.environ.update({'http_dict':{'request_path':'/'.join(['', device, partition, account, dst_container,dst_link]),
+                                             'srcName':request.path,
+                                             'dstName':dst_link.split('/')[-1]}})
         resp = jresponse('0', '', request,201) 
         return resp
 

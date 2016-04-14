@@ -144,15 +144,19 @@ class DirerController(object):
         if not broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
         
+        req.environ.update({'http_dict':{'request_path':req.path}})
+        
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
+            
             lcontainer = object_versions.split('/')[0]
             ver_broker = self._get_direr_broker(drive, part, account, lcontainer,direr)
             if not ver_broker.is_deleted():
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
                 dirsize = versize + dirsize
-                                
+                req.environ.update({'http_version_dict':{'request_path':'/'.join(['',drive,part,account,lcontainer,direr])}})
+                            
         self.account_update(req, account, dirsize, add_flag=False)
         return jresponse('0', '', req,204)
     
@@ -180,6 +184,7 @@ class DirerController(object):
         dirsize = broker.get_data_dir_size()
         
         broker.reset_db()
+        req.environ.update({'http_dict':{'request_path':req.path}})
         
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
@@ -188,10 +193,10 @@ class DirerController(object):
             if not ver_broker.is_deleted():
                 versize = ver_broker.get_data_dir_size()
                 ver_broker.delete_db()
-                
                 dirsize = versize + dirsize
+                req.environ.update({'http_version_dict':{'request_path':'/'.join(['',drive,part,account,lcontainer,direr])}})
+                
         self.account_update(req, account, dirsize, add_flag=False)
-                     
         return jresponse('0', '', req,204)
         
         
@@ -247,7 +252,9 @@ class DirerController(object):
         user_broker.metadata['X-File-Type'] = 'd'
         
         user_broker.update_metadata(user_broker.metadata)
-                
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'srcNewPath':'/'.join([account,src_container,src_direr]),
+                                         'dstNewPath':'/'.join([account,recycle_container,user_obj])}})    
         return jresponse('0','',req,201)
     
         
@@ -294,7 +301,9 @@ class DirerController(object):
             return jresponse('-1', 'conflict', req,409)
          
         src_broker.meta_del()
-                
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'srcNewPath':'/'.join([account, src_container,src_direr,recycle_uuid]),
+                                         'dstNewPath':'/'.join([account, dst_container,dst_direr])}})                  
         return jresponse('0', '', req,201)
         
     @public
@@ -322,6 +331,7 @@ class DirerController(object):
             if broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409)
         
+        req.environ.update({'http_dict':{'request_path':req.path}})
         return jresponse('0', '', req,201) 
         
     @public
@@ -367,7 +377,12 @@ class DirerController(object):
         
         if dst_broker.is_deleted():
             return jresponse('-1', 'conflict', req,409)
-            
+        
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'dstName':dst_direr.split('/')[-1],
+                                         'srcNewPath':'/'.join([account, src_container,src_direr]),
+                                         'dstNewPath':'/'.join([account, dst_container,dst_direr])}})    
+                    
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
             lcontainer = object_versions.split('/')[0]
@@ -379,7 +394,11 @@ class DirerController(object):
                     dst_broker.delete_db()
                                 
                 dst_broker.move(ver_broker.datadir)
-                
+                req.environ.update({'http_version_dict':{'request_path':'/'.join(['',drive,part,account, lcontainer,src_direr]),
+                                                 'dstName':dst_direr.split('/')[-1],
+                                                 'srcNewPath':'/'.join([account, lcontainer,src_direr]),
+                                                 'dstNewPath':'/'.join([account, lcontainer,dst_direr])}})   
+                    
         return jresponse('0', '', req,201)
     
     @public
@@ -437,7 +456,12 @@ class DirerController(object):
         if dst_broker.is_deleted():
             task_db_update(dbpath,'failed','conflict',tx_id)
             return jresponse('-1', 'conflict', req,409)
-            
+        
+        req.environ.update({'http_dict':{'request_path':req.path,
+                                         'dstName':dst_direr.split('/')[-1],
+                                         'srcNewPath':'/'.join([account, src_container,src_direr]),
+                                         'dstNewPath':'/'.join([account, dst_container,dst_direr])}})   
+                    
         object_versions = req.headers.get('x-versions-location')
         if object_versions:
             lcontainer = object_versions.split('/')[0]
@@ -451,7 +475,13 @@ class DirerController(object):
                 dst_broker.copy(ver_broker.datadir)
                 dstsize = dst_broker.get_data_dir_size()
                 dirsize = dstsize + dirsize
+        
+                req.environ.update({'http_version_dict':{'request_path':'/'.join(['',drive,part,account, lcontainer,src_direr]),
+                                                         'dstName':dst_direr.split('/')[-1],
+                                                         'srcNewPath':'/'.join([account, lcontainer,src_direr]),
+                                                         'dstNewPath':'/'.join([account, lcontainer,dst_direr])}})   
                 
+                   
         self.account_update(req, account, dirsize, add_flag=True)
         task_db_update(dbpath,'success','',tx_id)
         return jresponse('0', '', req,201)

@@ -165,6 +165,7 @@ class ContainerController(object):
             if resp:
                 return resp
             if existed:
+                req.environ.update({'http_dict':{'request_path':req.path}})
                 return jresponse('0', '', req,204) 
             return jresponse('-1', 'not found', req,404) 
 
@@ -222,7 +223,7 @@ class ContainerController(object):
             resp = self.account_update(req, account, container, broker)
             if resp:
                 return resp
-            
+            req.environ.update({'http_dict':{'request_path':req.path}})
             return jresponse('0', '', req,201) 
 
     @public
