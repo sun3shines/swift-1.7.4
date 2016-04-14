@@ -35,7 +35,6 @@ from swift.common.constraints import ACCOUNT_LISTING_LIMIT, \
     check_mount, check_float, check_utf8, FORMAT2CONTENT_TYPE
 
 from swift.common.bufferedhttp import jresponse
-from cloudmiddleware.http_account import cloudfs_account_put,cloudfs_account_delete,cloudfs_account_valid
 
 DATADIR = 'accounts'
 
@@ -58,9 +57,6 @@ class AccountController(object):
     def DELETE(self, req):
         """Handle HTTP DELETE request."""
         
-        if not cloudfs_account_valid(req.path):
-            return jresponse('-1','account state invalid',req,403)
-        
         try:
             drive, part, account = split_path(unquote(req.path), 3)
             validate_device_partition(drive, part)
@@ -75,7 +71,6 @@ class AccountController(object):
             return jresponse('-1', 'not found', req,404)
         
         broker.delete_db(req.headers['x-timestamp'])
-        cloudfs_account_delete(req.path)
         
         return jresponse('0', '', req,204)
 
@@ -128,7 +123,6 @@ class AccountController(object):
             if metadata:
                 broker.update_metadata(metadata)
                 
-            cloudfs_account_put(req.path)
             return jresponse('0', '', req,201)
 
     @public
@@ -170,9 +164,6 @@ class AccountController(object):
     
     @public
     def META(self, req):
-        
-        if not cloudfs_account_valid(req.path):
-            return jresponse('-1','account state invalid',req,403)
         
         try:
             drive, part, account, container = split_path(unquote(req.path),
@@ -216,9 +207,6 @@ class AccountController(object):
     @public
     def GET(self, req):
         """Handle HTTP GET request."""
-        
-        if not cloudfs_account_valid(req.path):
-            return jresponse('-1','account state invalid',req,403)
         
         try:
             drive, part, account = split_path(unquote(req.path), 3)
@@ -284,8 +272,6 @@ class AccountController(object):
     def POST(self, req):
         
         """Handle HTTP POST request."""
-        if not cloudfs_account_valid(req.path):
-            return jresponse('-1','account state invalid',req,403)
         
         try:
             drive, part, account = split_path(unquote(req.path), 3)
