@@ -28,10 +28,6 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPInternalServerError, HTTPNoContent, \
     HTTPNotFound, HTTPPreconditionFailed, HTTPMethodNotAllowed
 
-from cloudweb.db.container import cntdelete,cntput
-from cloudweb.db.table.mysql import getDb
-from cloudweb.db.message.container import msgPut,msgDelete,msgHead,msgMeta,msgGet,msgPost
-
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, storage_directory, split_path, validate_sync_to, \
     TRUE_VALUES, validate_device_partition, json
@@ -163,9 +159,6 @@ class ContainerController(object):
                       not broker.is_deleted()
             broker.delete_db(req.headers['X-Timestamp'])
             
-            msgDelete(self.dbconn,req.path)
-            cntdelete(req.path,self.dbconn)
-            
             if not broker.is_deleted():
                 return jresponse('-1', 'conflict', req,409) 
             resp = self.account_update(req, account, container, broker)
@@ -229,16 +222,13 @@ class ContainerController(object):
             resp = self.account_update(req, account, container, broker)
             if resp:
                 return resp
-
-            cntput(req.path,self.dbconn)
-            msgPut(self.dbconn,req.path)
             
             return jresponse('0', '', req,201) 
 
     @public
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
-        start_time = time.time()
+        
         try:
             drive, part, account, container, obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -265,14 +255,12 @@ class ContainerController(object):
             if value != '' and (key.lower() in self.save_headers or
                                 key.lower().startswith('x-container-meta-')))
         
-        
         return jresponse('0', '', req,204,headers)
         
     @public
     def META(self, req):
         """Handle HTTP HEAD request."""
         
-        start_time = time.time()
         try:
             drive, part, account, container, obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -307,7 +295,7 @@ class ContainerController(object):
     @public
     def GET(self, req):
         """Handle HTTP GET request."""
-        start_time = time.time()
+        
         try:
             drive, part, account, container, obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -321,7 +309,6 @@ class ContainerController(object):
         
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404) 
-        info = broker.get_info()
         
         try:
             path = get_param(req, 'path')
@@ -341,7 +328,6 @@ class ContainerController(object):
                     bodyresp='Maximum limit is %d' % CONTAINER_LISTING_LIMIT
                     return jresponse('-1', bodyresp, req,412)
                      
-            query_format = get_param(req, 'format')
         except UnicodeDecodeError, err:
             respbody = 'parameters not utf8'
             return jresponse('-1', respbody, req,400) 
@@ -368,7 +354,6 @@ class ContainerController(object):
     def POST(self, req):
         """Handle HTTP POST request."""
         
-        start_time = time.time()
         try:
             drive, part, account, container = split_path(unquote(req.path), 4)
             validate_device_partition(drive, part)
@@ -387,7 +372,7 @@ class ContainerController(object):
         broker = self._get_container_broker(drive, part, account, container)
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404) 
-        timestamp = normalize_timestamp(req.headers['x-timestamp'])
+        
         metadata = {}
         metadata.update((key, value)
             for key, value in req.headers.iteritems()
@@ -410,10 +395,8 @@ class ContainerController(object):
 
     def __call__(self, env, start_response):
         
-        start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
-        self.dbconn = getDb()
         
         if not check_utf8(req.path_info):
             res = jresponse('-1','Invalid UTF8',req,412)

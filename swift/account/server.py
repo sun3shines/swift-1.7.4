@@ -28,21 +28,14 @@ from webob.exc import HTTPAccepted, HTTPBadRequest, \
     HTTPMethodNotAllowed, HTTPNoContent, HTTPNotFound, \
     HTTPPreconditionFailed, HTTPConflict,HTTPOk
 
-from cloudweb.db.account import atdelete,atput
-from cloudweb.db.table.mysql import getDb
-from cloudweb.db.firewall import atValid
-from cloudweb.db.user import urPut
-from cloudweb.db.message.account import msgPut,msgDelete,msgHead,msgGet,msgMeta,msgPost
-
 from swift.common.utils import get_logger, get_param, hash_path, public, \
     normalize_timestamp, split_path, storage_directory, TRUE_VALUES, \
     validate_device_partition, json
 from swift.common.constraints import ACCOUNT_LISTING_LIMIT, \
     check_mount, check_float, check_utf8, FORMAT2CONTENT_TYPE
 
-from swift.common.http import HTTPInsufficientStorage
 from swift.common.bufferedhttp import jresponse
-
+from cloudmiddleware.http_account import cloudfs_account_put,cloudfs_account_delete,cloudfs_account_valid
 
 DATADIR = 'accounts'
 
@@ -65,7 +58,7 @@ class AccountController(object):
     def DELETE(self, req):
         """Handle HTTP DELETE request."""
         
-        if not atValid(req.path,self.dbconn):
+        if not cloudfs_account_valid(req.path):
             return jresponse('-1','account state invalid',req,403)
         
         try:
@@ -82,8 +75,7 @@ class AccountController(object):
             return jresponse('-1', 'not found', req,404)
         
         broker.delete_db(req.headers['x-timestamp'])
-        msgDelete(self.dbconn,req.path)
-        atdelete(req.path,self.dbconn)
+        cloudfs_account_delete(req.path)
         
         return jresponse('0', '', req,204)
 
@@ -136,10 +128,7 @@ class AccountController(object):
             if metadata:
                 broker.update_metadata(metadata)
                 
-            atput(req.path,self.dbconn)
-            urPut(self.dbconn,req.path)
-            msgPut(self.dbconn,req.path)
-            
+            cloudfs_account_put(req.path)
             return jresponse('0', '', req,201)
 
     @public
@@ -182,7 +171,7 @@ class AccountController(object):
     @public
     def META(self, req):
         
-        if not atValid(req.path,self.dbconn):
+        if not cloudfs_account_valid(req.path):
             return jresponse('-1','account state invalid',req,403)
         
         try:
@@ -228,7 +217,7 @@ class AccountController(object):
     def GET(self, req):
         """Handle HTTP GET request."""
         
-        if not atValid(req.path,self.dbconn):
+        if not cloudfs_account_valid(req.path):
             return jresponse('-1','account state invalid',req,403)
         
         try:
@@ -244,7 +233,6 @@ class AccountController(object):
         
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
-        info = broker.get_info()
         
         try:
             prefix = get_param(req, 'prefix')
@@ -296,7 +284,7 @@ class AccountController(object):
     def POST(self, req):
         
         """Handle HTTP POST request."""
-        if not atValid(req.path,self.dbconn):
+        if not cloudfs_account_valid(req.path):
             return jresponse('-1','account state invalid',req,403)
         
         try:
@@ -316,7 +304,6 @@ class AccountController(object):
         if broker.is_deleted():
             return jresponse('-1', 'not found', req,404)
         
-        timestamp = normalize_timestamp(req.headers['x-timestamp'])
         metadata = {}
         metadata.update((key, value)
             for key, value in req.headers.iteritems()
@@ -330,7 +317,6 @@ class AccountController(object):
         start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
-        self.dbconn = getDb()
         
         if not check_utf8(req.path_info):
             res = jresponse('-1', 'invalid utf8', req,412)
@@ -349,7 +335,6 @@ class AccountController(object):
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'InternalServerError', req,500)
                 
-        trans_time = '%.4f' % (time.time() - start_time)
         additional_info = ''
         if res.headers.get('x-container-timestamp') is not None:
             additional_info += 'x-container-timestamp: %s' % \

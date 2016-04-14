@@ -30,13 +30,6 @@ from contextlib import contextmanager
 import syslog
 import threading
 import multiprocessing
-from cloudweb.db.object import otput,otdelete,otcopy,otdeleteRecycle, \
-    otmoveRecycle,otmove
-    
-from cloudweb.db.table.mysql import getDb
-from cloudweb.db.firewall import otValid
-from cloudweb.db.message.object import msgPut,msgGet,msgHead,msgMeta,msgDelete, \
-    msgDeleteRecycle, msgMove,msgCopy,msgMoveRecycle,msgPost
 
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
@@ -366,19 +359,12 @@ class ObjectController(object):
             
             hdata = json.dumps(hdata)
             
-        otput(request.path,self.dbconn)
-        msgPut(self.dbconn,request.path)
-        
         resp = HTTPCreated(body=hdata,request=request)
         return resp
 
     @public
     def GET(self, request):
-        # request is global , can not be modify
-        # response can be modify
-        if not otValid(request.path,self.dbconn):
-            return jresponse('-1','file state invalid',request,403)
-        
+       
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -428,9 +414,6 @@ class ObjectController(object):
     @public
     def HEAD(self, request):
         
-        if not otValid(request.path,self.dbconn):
-            return jresponse('-1','file state invalid',request,403)
-        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -464,9 +447,6 @@ class ObjectController(object):
     @public
     def META(self, request):
 
-        if not otValid(request.path,self.dbconn):
-            return jresponse('-1','file state invalid',request,403)
-                
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -499,9 +479,6 @@ class ObjectController(object):
     def DELETE(self, request):
         """Handle HTTP DELETE requests for the Swift Object Server."""
         
-        if not otValid(request.path,self.dbconn):
-            return jresponse('-1','file state invalid',request,403)
-        
         try:
             device, partition, account, container, obj = \
                 split_path(unquote(request.path), 5, 5, True)
@@ -527,17 +504,11 @@ class ObjectController(object):
         file.meta_del()
         self.account_update(request, account, content_length, add_flag=False)
         
-        msgDelete(self.dbconn,request.path)
-        otdelete(request.path,self.dbconn)
-        
         resp = response_class(request=request)
         return resp
 
     @public
     def DELETE_RECYCLE(self, req):
-        
-        if not otValid(req.path,self.dbconn):
-            return jresponse('-1','file state invalid',req,403)
         
         try:
             device, partition, account, src_container, src_obj = split_path(
@@ -572,9 +543,6 @@ class ObjectController(object):
             user_file.create_dir_object(user_file.fhr_path)
             
         user_file.move(src_file.data_file)
-        
-        msgDeleteRecycle(self.dbconn,req.path)
-        otdeleteRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,recycle_container,user_obj]),self.dbconn)
         
         if user_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -637,10 +605,7 @@ class ObjectController(object):
 
     @public
     def COPY(self, req):
-
-        if not otValid(req.path,self.dbconn):
-            return jresponse('-1','file state invalid',req,403)
-                
+      
         device, partition, accountname = split_path(unquote(req.path), 3, 3, True)
         accountname = accountname.split('/')[0]
         dbpath = '%s/%s.db' % (self.devices,accountname)
@@ -706,18 +671,12 @@ class ObjectController(object):
         tx_id = req.environ.get('HTTP_X_TRANS_ID') 
         self.copy_action(src_file, dst_file, req,account,dbpath,tx_id)
         
-        otcopy('/'.join([account, src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
-        msgCopy(self.dbconn,req.path,dst_obj.split('/')[-1])
-        
         return jresponse('0', '', req,201)
     
     
     @public
     def MOVE(self, req):
-
-        if not otValid(req.path,self.dbconn):
-            return jresponse('-1','file state invalid',req,403)
-                   
+         
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -770,8 +729,6 @@ class ObjectController(object):
                 return jresponse('-1', 'not found', req,404)
         
         dst_file.move(src_file.data_file)
-        msgMove(self.dbconn,req.path,dst_obj.split('/')[-1])
-        otmove('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
@@ -787,10 +744,7 @@ class ObjectController(object):
 
     @public
     def MOVE_RECYCLE(self, req):
-
-        if not otValid(req.path,self.dbconn):
-            return jresponse('-1','file state invalid',req,403)
-                   
+        
         try:
             device, partition, account, src_container, src_obj = split_path(
                 unquote(req.path), 4, 5, True)
@@ -837,9 +791,7 @@ class ObjectController(object):
             dst_file.create_dir_object(dst_file.fhr_path)
         
         dst_file.move(src_file.data_file)
-        msgMoveRecycle(self.dbconn,req.path)
-        otmoveRecycle('/'.join([account,src_container,src_obj]),'/'.join([account,dst_container,dst_obj]),self.dbconn)
-        
+       
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', req,409)
             
@@ -853,10 +805,7 @@ class ObjectController(object):
     
     @public
     def POST(self, request):
-
-        if not otValid(request.path,self.dbconn):
-            return jresponse('-1','file state invalid',request,403)
-                
+      
         """Handle HTTP POST requests for the Swift Object Server."""
         start_time = time.time()
         try:
@@ -911,7 +860,7 @@ class ObjectController(object):
         start_time = time.time()
         req = Request(env)
         self.logger.txn_id = req.headers.get('x-trans-id', None)
-        self.dbconn = getDb()
+        
         if not check_utf8(req.path_info):
             res = jresponse('-1', 'invalid utf8', req,412)
         else:

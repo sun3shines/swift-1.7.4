@@ -23,8 +23,6 @@ from webob.exc import  HTTPBadGateway, \
     HTTPLengthRequired
 
 from webob import Request
-from cloudweb.db.account import atexists
-from cloudweb.db.table.mysql import getDb
 
 from swift.common.mx_swob import wsgify
 
@@ -275,8 +273,7 @@ class Userinit(object):
         
         if resp.status_int == HTTP_NOT_FOUND:
             return False
-        if not atexists(req.path,self.conn):
-            return False
+        
         return True
     
     def handle_register(self, req):
@@ -339,7 +336,7 @@ class Userinit(object):
         dbpath = '%s/%s.db' % (self.devices,account)
 
         resp = self.app
-        self.conn = getDb()
+        
         if 'register' == container:
             if not self.account_exists(req):
                 dbpath = '%s/%s.db' % (self.devices,account)

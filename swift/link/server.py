@@ -27,10 +27,6 @@ from tempfile import mkstemp
 from urllib import unquote
 from contextlib import contextmanager
 
-from cloudweb.db.link import lkput
-from cloudweb.db.table.mysql import getDb
-from cloudweb.db.message.link import msgPut
-
 from webob import Request, Response, UTC
 from webob.exc import HTTPAccepted, HTTPBadRequest, HTTPCreated, \
     HTTPInternalServerError, HTTPNoContent, HTTPNotFound, \
@@ -158,8 +154,6 @@ class LinkController(object):
             return jresponse('-1', 'conflict', request,409) 
                                 
         dst_file.link(src_file.data_file)
-        lkput('/'.join(['', device, partition, account, dst_container,dst_link]),self.dbconn)
-        msgPut(self.dbconn,request.path,dst_link.split('/')[-1])
         
         if dst_file.is_deleted():
             return jresponse('-1', 'conflict', request,409) 
@@ -177,7 +171,6 @@ class LinkController(object):
             return self.app(env,start_response)
         
         self.logger.txn_id = req.headers.get('x-trans-id', None)
-        self.dbconn = getDb()
         
         if not check_utf8(req.path_info):
             res =jresponse('-1', 'Invalid UTF8', req,412) 
