@@ -52,6 +52,7 @@ from swift.common.exceptions import ConnectionTimeout, DiskFileError, \
 from swift.common.http import is_success, HTTPInsufficientStorage, \
     HTTPClientDisconnect
 
+from cloudmiddleware.http_link import cloudfs_link_put
 
 DATADIR = 'objects'
 ASYNCDIR = 'async_pending'
@@ -119,6 +120,7 @@ class LinkController(object):
         
         
     @public
+    @cloudfs_link_put
     def PUT(self, request):
         
         try:

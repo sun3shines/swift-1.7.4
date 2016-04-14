@@ -44,7 +44,9 @@ from swift.common.http import HTTP_NOT_FOUND, is_success, \
 from swift.common.utils import get_uuid
 from cloud.swift.common.utils import  X_CONTENT_LENGTH,X_ETAG
 from swift.common.middleware.userdb import task_db_insert,task_db_update
-
+from cloudmiddleware.http_dir import cloudfs_dir_delete,cloudfs_dir_reset,cloudfs_dir_moverecycle,\
+    cloudfs_dir_deleterecycle,cloudfs_dir_move,cloudfs_dir_copy,cloudfs_dir_put
+    
 class DirerController(object):
     """WSGI Controller for the container server."""
 
@@ -117,6 +119,7 @@ class DirerController(object):
         return None
     
     @public
+    @cloudfs_dir_delete
     def DELETE(self, req):
           
         try:
@@ -161,6 +164,7 @@ class DirerController(object):
         return jresponse('0', '', req,204)
     
     @public
+    @cloudfs_dir_reset
     def RESET(self, req):
 
         try:
@@ -202,6 +206,7 @@ class DirerController(object):
         
         
     @public
+    @cloudfs_dir_deleterecycle
     def DELETE_RECYCLE(self, req):
         try:
             drive, part, account, src_container, src_direr = split_path(
@@ -259,6 +264,7 @@ class DirerController(object):
     
         
     @public
+    @cloudfs_dir_moverecycle
     def MOVE_RECYCLE(self, req):
         
         try:
@@ -307,6 +313,7 @@ class DirerController(object):
         return jresponse('0', '', req,201)
         
     @public
+    @cloudfs_dir_put
     def PUT(self, req):
         
         try:
@@ -335,6 +342,7 @@ class DirerController(object):
         return jresponse('0', '', req,201) 
         
     @public
+    @cloudfs_dir_move
     def MOVE(self, req):
         
         try:
@@ -402,6 +410,7 @@ class DirerController(object):
         return jresponse('0', '', req,201)
     
     @public
+    @cloudfs_dir_copy
     def COPY(self, req):
 
         drive, part, accountname = split_path(unquote(req.path), 3, 3, True)

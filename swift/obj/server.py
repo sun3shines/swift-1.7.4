@@ -64,7 +64,10 @@ from swift.lib.utils import file_decrypt
 from swift.common.common.swob import Response as HResponse
 from swift.common.common.swob import Range
 from swift.common.middleware.userdb import task_db_insert,task_db_update
-
+from cloudmiddleware.http_firewall import cloudfs_object_valid
+from cloudmiddleware.http_object import cloudfs_object_put,cloudfs_object_delete,cloudfs_object_move,\
+    cloudfs_object_copy,cloudfs_object_moverecycle,cloudfs_object_deleterecycle
+    
 DATADIR = 'objects'
 ASYNCDIR = 'async_pending'
 PICKLE_PROTOCOL = 2
@@ -260,6 +263,8 @@ class ObjectController(object):
         return None
       
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_put
     def PUT(self, request):
 
         """Handle HTTP PUT requests for the Swift Object Server."""
@@ -363,6 +368,7 @@ class ObjectController(object):
         return resp
 
     @public
+    @cloudfs_object_valid
     def GET(self, request):
        
         try:
@@ -412,6 +418,7 @@ class ObjectController(object):
         return request.get_response(response)
 
     @public
+    @cloudfs_object_valid
     def HEAD(self, request):
         
         try:
@@ -445,6 +452,7 @@ class ObjectController(object):
         return response
     
     @public
+    @cloudfs_object_valid
     def META(self, request):
 
         try:
@@ -476,6 +484,8 @@ class ObjectController(object):
         return response
     
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_delete
     def DELETE(self, request):
         """Handle HTTP DELETE requests for the Swift Object Server."""
         
@@ -509,6 +519,8 @@ class ObjectController(object):
         return resp
 
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_deleterecycle
     def DELETE_RECYCLE(self, req):
         
         try:
@@ -609,6 +621,8 @@ class ObjectController(object):
             
 
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_copy
     def COPY(self, req):
       
         device, partition, accountname = split_path(unquote(req.path), 3, 3, True)
@@ -684,6 +698,8 @@ class ObjectController(object):
     
     
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_move
     def MOVE(self, req):
          
         try:
@@ -758,6 +774,8 @@ class ObjectController(object):
     
 
     @public
+    @cloudfs_object_valid
+    @cloudfs_object_moverecycle
     def MOVE_RECYCLE(self, req):
         
         try:
@@ -823,6 +841,7 @@ class ObjectController(object):
         return jresponse('0', '', req,201)
     
     @public
+    @cloudfs_object_valid
     def POST(self, request):
       
         """Handle HTTP POST requests for the Swift Object Server."""

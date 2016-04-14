@@ -35,6 +35,8 @@ from swift.common.constraints import ACCOUNT_LISTING_LIMIT, \
     check_mount, check_float, check_utf8, FORMAT2CONTENT_TYPE
 
 from swift.common.bufferedhttp import jresponse
+from cloudmiddleware.http_account import cloudfs_account_put,cloudfs_account_delete
+from cloudmiddleware.http_firewall import cloudfs_account_valid
 
 DATADIR = 'accounts'
 
@@ -54,6 +56,8 @@ class AccountController(object):
         return None
     
     @public
+    @cloudfs_account_valid
+    @cloudfs_account_delete
     def DELETE(self, req):
         """Handle HTTP DELETE request."""
         
@@ -75,6 +79,8 @@ class AccountController(object):
         return jresponse('0', '', req,204)
 
     @public
+    @cloudfs_account_valid
+    @cloudfs_account_put
     def PUT(self, req):
         """Handle HTTP PUT request."""
         
@@ -126,6 +132,7 @@ class AccountController(object):
             return jresponse('0', '', req,201)
 
     @public
+    @cloudfs_account_valid
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
         try:
@@ -162,6 +169,7 @@ class AccountController(object):
     
     
     @public
+    @cloudfs_account_valid
     def META(self, req):
         
         try:
@@ -204,6 +212,7 @@ class AccountController(object):
         return ret
     
     @public
+    @cloudfs_account_valid
     def GET(self, req):
         """Handle HTTP GET request."""
         
@@ -268,6 +277,7 @@ class AccountController(object):
         return ret
 
     @public
+    @cloudfs_account_valid
     def POST(self, req):
         
         """Handle HTTP POST request."""

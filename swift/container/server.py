@@ -38,6 +38,7 @@ from swift.common.exceptions import ConnectionTimeout
 
 from swift.common.http import HTTP_NOT_FOUND, is_success, \
     HTTPInsufficientStorage
+from cloudmiddleware.http_container import cloudfs_container_delete,cloudfs_container_put
 
 DATADIR = 'containers'
 
@@ -125,6 +126,7 @@ class ContainerController(object):
         return None
 
     @public
+    @cloudfs_container_delete
     def DELETE(self, req):
         
         """Handle HTTP DELETE request."""
@@ -170,6 +172,7 @@ class ContainerController(object):
             return jresponse('-1', 'not found', req,404) 
 
     @public
+    @cloudfs_container_put
     def PUT(self, req):
         """Handle HTTP PUT request."""
         if req.body:
