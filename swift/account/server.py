@@ -122,13 +122,12 @@ class AccountController(object):
                 if key.lower().startswith('x-account-meta-'))
             if metadata:
                 broker.update_metadata(metadata)
-                
+            req.environ.update({'db_cloudfs_dict':{'xxxx':'xxxtest'}})
             return jresponse('0', '', req,201)
 
     @public
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
-        
         try:
             drive, part, account, container = split_path(unquote(req.path),
                                                          3, 4)
@@ -325,7 +324,7 @@ class AccountController(object):
         if res.headers.get('x-container-timestamp') is not None:
             additional_info += 'x-container-timestamp: %s' % \
                 res.headers['x-container-timestamp']
-        self.dbconn.close()
+        
         return res(env, start_response)
 
 

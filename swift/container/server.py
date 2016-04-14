@@ -415,7 +415,7 @@ class ContainerController(object):
                 self.logger.exception(_('ERROR __call__ error with %(method)s'
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'InternalServerError', req,500)
-        self.dbconn.close()
+        
         return res(env, start_response)
 
 

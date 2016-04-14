@@ -189,7 +189,7 @@ class LinkController(object):
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'InternalServerError', req,500)
         trans_time = time.time() - start_time
-        self.dbconn.close()
+        
         if req.method in ('PUT', 'DELETE'):
             slow = self.slow - trans_time
             if slow > 0:

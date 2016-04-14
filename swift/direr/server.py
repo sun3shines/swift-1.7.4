@@ -573,8 +573,6 @@ class DirerController(object):
                     ' %(path)s '), {'method': req.method, 'path': req.path})
                 res = jresponse('-1', 'internal server error', req,500)
                 
-        self.dbconn.close()
-        
         return res(env, start_response)
 
 

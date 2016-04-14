@@ -32,10 +32,9 @@ class AccountQuotaMiddleware(object):
 
     @wsgify
     def __call__(self, request):
-
+        
         if request.method not in ("PUT","COPY"):
             return self.app
-
         try:
             split_path(request.path,2, 4, rest_with_last=True)
         except ValueError:
@@ -46,7 +45,6 @@ class AccountQuotaMiddleware(object):
             if not new_quota.isdigit():
                 return jresponse('-1', 'bad request', request, 400)
             return self.app
-
         account_info = get_account_info(request.environ, self.app)
         new_size = int(account_info['bytes']) + (request.content_length or 0)
         quota = int(account_info['meta'].get('quota-bytes', -1))

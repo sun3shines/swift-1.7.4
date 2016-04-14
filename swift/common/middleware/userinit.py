@@ -336,7 +336,6 @@ class Userinit(object):
         dbpath = '%s/%s.db' % (self.devices,account)
 
         resp = self.app
-        
         if 'register' == container:
             if not self.account_exists(req):
                 dbpath = '%s/%s.db' % (self.devices,account)
@@ -348,7 +347,6 @@ class Userinit(object):
         else:
             if not self.account_exists(req):
                 resp = jresponse('-1','account user not found',req,404)
-        self.conn.close()
         return resp
 
 
