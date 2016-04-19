@@ -34,7 +34,7 @@ from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
 from swift.common.oauth.bridge import *
 import hashlib
 from swift.common.bufferedhttp import jresponse
-
+from cloudmiddleware.http_oauth2 import cloudfs_oauth_register
 def strmd5sum(src):
     
     myMd5 = hashlib.md5()
@@ -245,6 +245,7 @@ class OAuth(object):
         
         return result
 
+    @cloudfs_oauth_register
     def handle_get_token(self, req):
         
         param = json.loads(req.body)
@@ -305,6 +306,7 @@ class OAuth(object):
             memcache_client.set(memcache_user_key, token,timeout=expires_in)
             
         oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent':account_user})
+        req.environ.update({'http_dict':{'email':user_email,'passwd':user_passwd,'usertoken':token}})
         return Response(body=oauth_data_list,request=req)
         
 def filter_factory(global_conf, **local_conf):
