@@ -304,7 +304,6 @@ class OAuth(object):
             # get token by oauth server by account_user
             memcache_user_key = '%s/user/%s' % (self.reseller_prefix, md5_account_user)
             memcache_client.set(memcache_user_key, token,timeout=expires_in)
-            
         oauth_data_list = json.dumps({'access_token':token,'expires':expires,'tanent':account_user})
         req.environ.update({'http_dict':{'email':user_email,'passwd':user_passwd,'usertoken':token}})
         return Response(body=oauth_data_list,request=req)

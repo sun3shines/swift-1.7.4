@@ -132,7 +132,6 @@ class AccountController(object):
             return jresponse('0', '', req,201)
 
     @public
-    @cloudfs_account_valid
     def HEAD(self, req):
         """Handle HTTP HEAD request."""
         try:
@@ -169,7 +168,6 @@ class AccountController(object):
     
     
     @public
-    @cloudfs_account_valid
     def META(self, req):
         
         try:
@@ -212,7 +210,6 @@ class AccountController(object):
         return ret
     
     @public
-    @cloudfs_account_valid
     def GET(self, req):
         """Handle HTTP GET request."""
         
