@@ -34,7 +34,7 @@ from swift.common.http import HTTP_CLIENT_CLOSED_REQUEST
 from swift.common.oauth.bridge import *
 import hashlib
 from swift.common.bufferedhttp import jresponse
-from cloudmiddleware.http_oauth2 import cloudfs_oauth_register
+from cloudmiddleware.http_oauth2 import cloudfs_oauth_register,cloudfs_token_valid
 def strmd5sum(src):
     
     myMd5 = hashlib.md5()
@@ -90,12 +90,12 @@ class OAuth(object):
         # return self.app(env, start_response)
         ################################################
         if token :
-            
             user_info = self.get_cache_user_info(env, token)
             if user_info:
-                
+                # 管理员必须要登录
                 tenant = 'AUTH_' + user_info.replace('@','').replace('.','')
-                if account != tenant:
+                 
+                if account != tenant and not cloudfs_token_valid(token):
                     self.logger.increment('unauthorized')
                     return HTTPUnauthorized()(env, start_response)
                 
