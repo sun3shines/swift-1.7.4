@@ -13,7 +13,7 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os.path
 from eventlet import Timeout
 from webob import Request,Response
 from webob.exc import HTTPServerError,HTTPNoContent
@@ -42,7 +42,8 @@ class UserOpMiddleware(object):
         vers,account,container,obj = split_path(req.path,1, 4,True)
                        
         dbpath = '%s/%s.db' % (self.dbdir,account)
-        
+        if not os.path.exists(dbpath):
+            return jresponse('-1','user db file not found',req,404)(env,start_response)
         if 'GET_OP_HISTORY' == req.GET.get('op'):
             if req.GET.get('recent'):
                 desc_flag = True
