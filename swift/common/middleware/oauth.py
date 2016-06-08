@@ -75,7 +75,7 @@ class OAuth(object):
         
         if env.get('PATH_INFO', '').startswith(self.verify_prefix):
             return self.verify(env, start_response)
-        
+
         req = Request(env)
         
         try:
