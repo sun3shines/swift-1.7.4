@@ -42,7 +42,7 @@ class UserOpMiddleware(object):
         vers,account,container,obj = split_path(req.path,1, 4,True)
                        
         dbpath = '%s/%s.db' % (self.dbdir,account)
-        if not os.path.exists(dbpath):
+        if 'register' != container and not os.path.exists(dbpath):
             return jresponse('-1','user db file not found',req,404)(env,start_response)
         if 'GET_OP_HISTORY' == req.GET.get('op'):
             if req.GET.get('recent'):
